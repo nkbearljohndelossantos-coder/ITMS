@@ -119,9 +119,8 @@ app.use((err, req, res, next) => {
   
   return res.status(statusCode).json({
     success: false,
-    message: isProduction ? 'An unexpected error occurred on the server.' : err.message,
-    // Hide details from end-users in production
-    error: isProduction ? undefined : err.stack
+    message: err.message || 'An unexpected error occurred on the server.',
+    error: err.stack
   });
 });
 
