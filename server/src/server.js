@@ -120,9 +120,33 @@ app.use((err, req, res, next) => {
 // 9. Startup Server
 const PORT = process.env.PORT || 5000;
 if (process.env.NODE_ENV !== 'test') {
-  server.listen(PORT, () => {
-    logger.info(`Server is running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-  });
+  const db = require('./config/db');
+  
+  db.migrate.latest()
+    .then(async () => {
+      logger.info('Database migrated successfully');
+      
+      // Only run the seeder if the database is completely empty (no roles)
+      const rolesCount = await db('roles').count('id as count').first();
+      if (rolesCount.count === 0 || rolesCount.count === '0') {
+        logger.info('Database is completely empty. Running initial system seeds...');
+        await db.seed.run();
+        logger.info('Database seeded successfully');
+      } else {
+        logger.info('Database already contains data. Skipping seeds to protect data.');
+      }
+      
+      server.listen(PORT, () => {
+        logger.info(`Server is running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+      });
+    })
+    .catch((err) => {
+      logger.error(`Database startup sequence failed: ${err.message}`);
+      // Fallback to start server anyway so frontend remains accessible
+      server.listen(PORT, () => {
+        logger.info(`Server started in recovery mode on port ${PORT}`);
+      });
+    });
 }
 
 module.exports = { app, server };
