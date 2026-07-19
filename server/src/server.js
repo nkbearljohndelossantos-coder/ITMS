@@ -90,25 +90,18 @@ app.use('/api/guest-wifi', require('./routes/guestWifi'));
 app.use('/api/websites', require('./routes/websites'));
 app.use('/api/secrets', require('./routes/secrets'));
 
-// 7. Serve Static Frontend files in Production
-if (process.env.NODE_ENV === 'production') {
-  const distPath = path.join(__dirname, '../../client/dist');
-  app.use(express.static(distPath));
-  
-  // Wildcard fallback for React Router SPA (Single Page Application)
-  app.get('*', (req, res, next) => {
-    // Exclude API calls from wildcard fallback
-    if (req.url.startsWith('/api')) {
-      return next();
-    }
-    res.sendFile(path.join(distPath, 'index.html'));
-  });
-} else {
-  // Simple welcome root for development
-  app.get('/', (req, res) => {
-    res.json({ success: true, message: 'NKB ITMS API Server is running.' });
-  });
-}
+// 7. Serve Static Frontend files
+const distPath = path.join(__dirname, '../../client/dist');
+app.use(express.static(distPath));
+
+// Wildcard fallback for React Router SPA (Single Page Application)
+app.get('*', (req, res, next) => {
+  // Exclude API calls from wildcard fallback
+  if (req.url.startsWith('/api')) {
+    return next();
+  }
+  res.sendFile(path.join(distPath, 'index.html'));
+});
 
 // 8. Centralized Global Error Handler
 app.use((err, req, res, next) => {
