@@ -117,7 +117,7 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50 text-slate-900">
+    <div className="h-screen flex bg-slate-50 text-slate-900 overflow-hidden">
       {/* ==========================================
           DESKTOP SIDEBAR
           ========================================== */}
