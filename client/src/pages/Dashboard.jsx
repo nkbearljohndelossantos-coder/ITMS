@@ -194,9 +194,9 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Ticket opened vs resolved trend */}
-        <div className="lg:col-span-2 bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+        <div className="lg:col-span-2 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Monthly Ticket Trend (Opened vs Resolved)</h3>
-          <div className="h-64 flex-1">
+          <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={charts.ticketTrends}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -212,9 +212,9 @@ export default function Dashboard() {
         </div>
 
         {/* Assets by Category */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Assets by Category</h3>
-          <div className="h-64 flex-1 relative flex items-center justify-center">
+          <div className="h-64 w-full relative flex items-center justify-center">
             {charts.assetsByCategory && charts.assetsByCategory.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -269,9 +269,9 @@ export default function Dashboard() {
         </div>
 
         {/* Tickets by priority donut chart */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Active Tickets by Priority</h3>
-          <div className="h-64 flex-1 flex items-center justify-center">
+          <div className="h-64 w-full flex items-center justify-center">
             {charts.ticketsByPriority && charts.ticketsByPriority.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
