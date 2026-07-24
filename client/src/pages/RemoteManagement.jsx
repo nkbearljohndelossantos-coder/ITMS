@@ -6,6 +6,7 @@ import {
   CheckSquare, XCircle, Search, Filter, Radio, ChevronRight, User, Eye, Activity
 } from 'lucide-react';
 import api from '../services/api';
+import { getSocket } from '../services/socket';
 import ReauthModal from '../components/ReauthModal';
 import AttendedRequestPromptModal from '../components/AttendedRequestPromptModal';
 
@@ -62,6 +63,29 @@ export default function RemoteManagement() {
   useEffect(() => {
     loadDashboard();
   }, []);
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (socket) {
+      const handleAccessUpdated = (data) => {
+        if (data.status === 'approved' && selectedDevice) {
+          api.post('/remote/sessions/launch', {
+            device_id: selectedDevice.device_id,
+            access_mode: 'attended',
+            connection_type: 'Full Control'
+          }).then(res => {
+            if (res.data.success) {
+              setActiveModalSession(res.data.data);
+              setActiveTab('desktop');
+            }
+          });
+        }
+      };
+
+      socket.on('remote:access_request_updated', handleAccessUpdated);
+      return () => socket.off('remote:access_request_updated', handleAccessUpdated);
+    }
+  }, [selectedDevice]);
 
   useEffect(() => {
     if (selectedDevice && activeTab === 'terminal') {
@@ -192,12 +216,7 @@ export default function RemoteManagement() {
           reason: 'IT Remote Support Assistance'
         }).then(res => {
           if (res.data.success) {
-            setAttendedPromptRequest({
-              requestCode: res.data.data.requestCode,
-              deviceId: selectedDevice.device_id,
-              technicianName: 'IT Support Technician',
-              reason: 'IT Remote Support Assistance'
-            });
+            alert(`Attended Access Request sent to ${selectedDevice.name}!\n\nThe Employee Consent Prompt modal has popped up on the employee's computer screen. Once they click 'Allow Connection', your remote session will open automatically.`);
           }
         }).catch(err => {
           console.error(err);

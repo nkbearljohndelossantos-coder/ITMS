@@ -68,8 +68,12 @@ export const AuthProvider = ({ children }) => {
 
     if (s) {
       s.on('remote:access_request_prompt', (reqData) => {
-        setGlobalRemotePrompt(reqData);
-        showToast('Remote Access Requested', `Technician ${reqData.technicianName} is requesting remote assistance`, 'warning');
+        const savedUserStr = localStorage.getItem('user');
+        const currentUser = savedUserStr ? JSON.parse(savedUserStr) : null;
+        if (currentUser && reqData.technicianId !== currentUser.id) {
+          setGlobalRemotePrompt(reqData);
+          showToast('Remote Access Requested', `Technician ${reqData.technicianName} is requesting remote assistance`, 'warning');
+        }
       });
     }
 

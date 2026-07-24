@@ -252,6 +252,7 @@ router.post('/requests', authenticateToken, requirePermission('remote_device.req
         requestId: id,
         requestCode,
         deviceId: device_id,
+        technicianId: req.user.id,
         technicianName: req.user.username,
         reason,
         expiresAt
