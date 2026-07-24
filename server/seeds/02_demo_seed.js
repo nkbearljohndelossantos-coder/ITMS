@@ -316,48 +316,56 @@ exports.seed = async function(knex) {
       item_code: 'INV-RAM-16G',
       name: 'Kingston 16GB DDR4 3200MHz RAM',
       category_id: 1,
-      description: 'Desktop and workstation RAM upgrade module',
+      brand: 'Kingston',
+      model: 'DDR4 3200MHz',
       unit_of_measure: 'pcs',
-      quantity: 25,
-      reorder_level: 5,
+      current_quantity: 25,
+      minimum_stock: 5,
+      reorder_quantity: 10,
       unit_cost: 2450.00,
-      created_by: 1
+      remarks: 'Desktop and workstation RAM upgrade module'
     },
     {
       id: 2,
       item_code: 'INV-SSD-500G',
       name: 'Samsung 980 500GB NVMe M.2 SSD',
       category_id: 2,
-      description: 'High-speed solid state drive for OS upgrades',
+      brand: 'Samsung',
+      model: '980 NVMe 500GB',
       unit_of_measure: 'pcs',
-      quantity: 14,
-      reorder_level: 4,
+      current_quantity: 14,
+      minimum_stock: 4,
+      reorder_quantity: 10,
       unit_cost: 3800.00,
-      created_by: 1
+      remarks: 'High-speed solid state drive for OS upgrades'
     },
     {
       id: 3,
       item_code: 'INV-TNR-HP58A',
       name: 'HP 58A Black LaserJet Toner Cartridge',
       category_id: 4,
-      description: 'Original toner cartridge for HP LaserJet M404 series',
+      brand: 'HP',
+      model: '58A (CF258A)',
       unit_of_measure: 'pcs',
-      quantity: 8,
-      reorder_level: 2,
+      current_quantity: 8,
+      minimum_stock: 2,
+      reorder_quantity: 5,
       unit_cost: 5200.00,
-      created_by: 1
+      remarks: 'Original toner cartridge for HP LaserJet M404 series'
     },
     {
       id: 4,
       item_code: 'INV-CBL-CAT6-2M',
       name: 'Cat6 UTP Ethernet Cable 2 Meters',
       category_id: 3,
-      description: 'Patch cable for office network drops',
+      brand: 'AMP Netconnect',
+      model: 'Cat6 UTP 2m',
       unit_of_measure: 'pcs',
-      quantity: 50,
-      reorder_level: 10,
+      current_quantity: 50,
+      minimum_stock: 10,
+      reorder_quantity: 25,
       unit_cost: 150.00,
-      created_by: 1
+      remarks: 'Patch cable for office network drops'
     }
   ];
   await knex('inventory_items').insert(inventoryItems);
@@ -367,41 +375,44 @@ exports.seed = async function(knex) {
     {
       id: 1,
       name: 'Microsoft 365 Business Premium',
-      publisher: 'Microsoft',
-      license_key: 'XXXXX-XXXXX-XXXXX-XXXXX-M365P',
-      total_seats: 50,
-      used_seats: 32,
+      vendor: 'Microsoft',
+      license_type: 'Subscription',
+      product_key_encrypted: 'XXXXX-XXXXX-XXXXX-XXXXX-M365P',
+      seats_total: 50,
+      seats_used: 32,
       purchase_date: '2026-01-01',
       expiration_date: '2027-01-01',
-      cost: 450000.00,
-      remarks: 'Annual subscription for all office staff',
-      created_by: 1
+      purchase_cost: 450000.00,
+      status: 'Active',
+      remarks: 'Annual subscription for all office staff'
     },
     {
       id: 2,
       name: 'Adobe Creative Cloud All Apps',
-      publisher: 'Adobe Systems',
-      license_key: 'ADBE-CC-2026-VIP-9912',
-      total_seats: 10,
-      used_seats: 8,
+      vendor: 'Adobe Systems',
+      license_type: 'Subscription',
+      product_key_encrypted: 'ADBE-CC-2026-VIP-9912',
+      seats_total: 10,
+      seats_used: 8,
       purchase_date: '2026-02-15',
       expiration_date: '2027-02-15',
-      cost: 180000.00,
-      remarks: 'Marketing and Graphics Design team licenses',
-      created_by: 1
+      purchase_cost: 180000.00,
+      status: 'Active',
+      remarks: 'Marketing and Graphics Design team licenses'
     },
     {
       id: 3,
       name: 'Sophos Intercept X Endpoint Protection',
-      publisher: 'Sophos',
-      license_key: 'SPHS-EP-100S-2026',
-      total_seats: 100,
-      used_seats: 85,
+      vendor: 'Sophos',
+      license_type: 'Subscription',
+      product_key_encrypted: 'SPHS-EP-100S-2026',
+      seats_total: 100,
+      seats_used: 85,
       purchase_date: '2026-01-10',
       expiration_date: '2027-01-10',
-      cost: 120000.00,
-      remarks: 'Centralized Endpoint Antivirus protection',
-      created_by: 1
+      purchase_cost: 120000.00,
+      status: 'Active',
+      remarks: 'Centralized Endpoint Antivirus protection'
     }
   ];
   await knex('software_licenses').insert(softwareLicenses);
@@ -411,25 +422,27 @@ exports.seed = async function(knex) {
     {
       id: 1,
       ticket_number: 'TKT-2026-000001',
-      subject: 'Keyboard key stuck on ThinkPad Laptop',
+      requested_by_employee_id: 2,
+      department_id: 2,
       category_id: 1,
+      subject: 'Keyboard key stuck on ThinkPad Laptop',
+      description: 'The "Spacebar" key on HR laptop feels sticky and misses keypresses.',
       priority: 'Medium',
       status: 'Open',
-      requested_by: 2,
-      assigned_to: 1,
-      description: 'The "Spacebar" key on HR laptop feels sticky and misses keypresses.',
+      assigned_technician_id: 1,
       created_at: '2026-07-20 09:30:00'
     },
     {
       id: 2,
       ticket_number: 'TKT-2026-000002',
-      subject: 'Finance printer printing blank pages',
+      requested_by_employee_id: 3,
+      department_id: 3,
       category_id: 1,
+      subject: 'Finance printer printing blank pages',
+      description: 'HP LaserJet M404dn printer in Finance prints blank pages during check runs.',
       priority: 'High',
       status: 'In Progress',
-      requested_by: 3,
-      assigned_to: 5,
-      description: 'HP LaserJet M404dn printer in Finance prints blank pages during check runs.',
+      assigned_technician_id: 1,
       created_at: '2026-07-22 14:15:00'
     }
   ];
@@ -441,15 +454,19 @@ exports.seed = async function(knex) {
       id: 1,
       repair_number: 'REP-2026-000001',
       asset_id: 2,
-      reported_date: '2026-06-10',
-      completion_date: '2026-06-12',
-      issue_description: 'Laptop battery drainage issue',
+      ticket_id: 1,
+      date_received: '2026-06-10',
+      reported_issue: 'Laptop battery drainage issue',
       diagnosis: 'Battery degradation - cell capacity below 40%',
-      work_done: 'Replaced internal battery unit with genuine Dell spare battery.',
-      total_cost: 3500.00,
-      repaired_by: 'Michael Tan',
-      status: 'Completed',
-      created_by: 1
+      repair_action: 'Replaced internal battery unit with genuine Dell spare battery.',
+      technician_id: 1,
+      parts_cost: 3500.00,
+      labor_cost: 0.00,
+      external_service_cost: 0.00,
+      total_repair_cost: 3500.00,
+      repair_start_date: '2026-06-10',
+      repair_completion_date: '2026-06-12',
+      status: 'Completed'
     }
   ];
   await knex('repairs').insert(repairs);
