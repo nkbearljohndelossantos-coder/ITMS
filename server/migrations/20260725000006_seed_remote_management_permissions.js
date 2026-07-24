@@ -83,97 +83,6 @@ exports.up = async function(knex) {
       await knex('production_activation_gates').insert(g);
     }
   }
-
-  // 4. Sample Managed Devices
-  const deviceCount = await knex('managed_devices').count('* as count').first();
-  if (parseInt(deviceCount.count) === 0) {
-    const sampleDevices = [
-      {
-        device_id: 'DEV-WIN11-OFFICE01',
-        name: 'NKB-DESKTOP-JDELOSSANTOS',
-        ip_address: '192.168.10.105',
-        mac_address: '74:56:3C:99:A1:B2',
-        os_name: 'Windows 11 Pro 23H2',
-        os_version: '10.0.22631',
-        logged_in_user: 'NKB\\jdelossantos',
-        agent_version: 'v1.2.4',
-        is_online: true,
-        remote_access_enabled: true,
-        protected_status: false,
-        approved_access_mode: 'attended',
-        is_simulated: true,
-        last_heartbeat: new Date()
-      },
-      {
-        device_id: 'DEV-SERVER-MAINSQL',
-        name: 'NKB-SRV-DATABASESQL01',
-        ip_address: '192.168.10.200',
-        mac_address: '00:50:56:A1:B2:C3',
-        os_name: 'Windows Server 2022 Datacenter',
-        os_version: '10.0.20348',
-        logged_in_user: 'NT AUTHORITY\\SYSTEM',
-        agent_version: 'v1.2.4',
-        is_online: true,
-        remote_access_enabled: true,
-        protected_status: true,
-        approved_access_mode: 'unattended',
-        is_simulated: true,
-        last_heartbeat: new Date()
-      },
-      {
-        device_id: 'DEV-WORKSTATION-CAD',
-        name: 'NKB-CAD-ENGINEERING03',
-        ip_address: '192.168.10.112',
-        mac_address: '3C:7C:3F:88:11:22',
-        os_name: 'Windows 11 Enterprise 23H2',
-        os_version: '10.0.22631',
-        logged_in_user: 'NKB\\engineer01',
-        agent_version: 'v1.2.4',
-        is_online: true,
-        remote_access_enabled: true,
-        protected_status: false,
-        approved_access_mode: 'attended',
-        is_simulated: true,
-        last_heartbeat: new Date()
-      },
-      {
-        device_id: 'DEV-PLANT-MONITOR02',
-        name: 'NKB-PLANT-MONITORING02',
-        ip_address: '192.168.10.180',
-        mac_address: 'A4:BB:6D:44:55:66',
-        os_name: 'Windows 10 Enterprise LTSC',
-        os_version: '10.0.19045',
-        logged_in_user: 'NKB\\plantoperator',
-        agent_version: 'v1.2.4',
-        is_online: true,
-        remote_access_enabled: true,
-        protected_status: false,
-        approved_access_mode: 'attended',
-        is_simulated: true,
-        last_heartbeat: new Date()
-      },
-      {
-        device_id: 'DEV-LAPTOP-MGMT05',
-        name: 'NKB-NB-MANAGER05',
-        ip_address: '192.168.10.155',
-        mac_address: 'E8:9C:25:33:44:55',
-        os_name: 'Windows 11 Pro 23H2',
-        os_version: '10.0.22631',
-        logged_in_user: 'NKB\\manager05',
-        agent_version: 'v1.2.4',
-        is_online: false,
-        remote_access_enabled: true,
-        protected_status: false,
-        approved_access_mode: 'attended',
-        is_simulated: true,
-        last_heartbeat: new Date(Date.now() - 3600000)
-      }
-    ];
-
-    for (const dev of sampleDevices) {
-      await knex('managed_devices').insert(dev);
-    }
-  }
 };
 
 exports.down = async function(knex) {
@@ -189,5 +98,4 @@ exports.down = async function(knex) {
     await knex('role_permissions').whereIn('permission_id', permIds).del();
     await knex('permissions').whereIn('id', permIds).del();
   }
-  await knex('managed_devices').where('is_simulated', true).del();
 };

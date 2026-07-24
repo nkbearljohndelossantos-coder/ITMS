@@ -306,7 +306,7 @@ router.post('/:id/documents', authenticateToken, requirePermission('assets.updat
 });
 
 // Update Asset
-router.put('/:id', authenticateToken, requirePermission('assets.update'), async (req, res) => {
+router.put('/:id', authenticateToken, requirePermission('assets.update'), uploadImage.single('image'), async (req, res) => {
   const { id } = req.params;
   const assetData = req.body;
 
@@ -324,6 +324,8 @@ router.put('/:id', authenticateToken, requirePermission('assets.update'), async 
         return res.status(400).json({ success: false, message: `Serial number '${assetData.serial_number}' is already registered to another asset.` });
       }
     }
+
+    const newImagePath = req.file ? `/uploads/images/${req.file.filename}` : (assetData.image_path || oldAsset.image_path);
 
     await db.transaction(async (trx) => {
       // 1. Update fields
@@ -351,6 +353,7 @@ router.put('/:id', authenticateToken, requirePermission('assets.update'), async 
         condition: assetData.condition || oldAsset.condition,
         status: assetData.status || oldAsset.status,
         remarks: assetData.remarks !== undefined ? assetData.remarks : oldAsset.remarks,
+        image_path: newImagePath,
         updated_by: req.user.id,
         updated_at: new Date()
       });

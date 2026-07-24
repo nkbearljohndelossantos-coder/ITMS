@@ -63,6 +63,7 @@ if (process.env.NODE_ENV === 'development') {
 // 5. Static folders serving
 // Serve uploads folder
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // 6. API Route Handlers
 app.use('/api/auth', authLimiter, require('./routes/auth'));
