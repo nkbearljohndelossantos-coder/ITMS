@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
+import AttendedRequestPromptModal from './AttendedRequestPromptModal';
 import { 
   LayoutDashboard, Laptop, Ticket, Wrench, Calendar, 
   Package, Key, Users, FileBarChart, History, Settings, 
@@ -9,7 +11,7 @@ import {
 } from 'lucide-react';
 
 export default function Layout() {
-  const { user, logout, hasPermission, notifications, unreadNotificationsCount, markNotificationAsRead } = useAuth();
+  const { user, logout, hasPermission, notifications, unreadNotificationsCount, markNotificationAsRead, globalRemotePrompt, setGlobalRemotePrompt } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -439,6 +441,21 @@ export default function Layout() {
             <Outlet />
           </div>
         </main>
+        {/* Global Endpoint Consent Prompt Modal */}
+        <AttendedRequestPromptModal
+          request={globalRemotePrompt}
+          onResponse={(reqCode, decision) => {
+            api.post('/remote/agent/consent', {
+              request_code: reqCode,
+              decision,
+              nonce: 'nonce-123',
+              timestamp: new Date().toISOString()
+            }, {
+              headers: { 'X-Endpoint-Signature': 'mock-signature' }
+            }).then(() => setGlobalRemotePrompt(null));
+          }}
+          onClose={() => setGlobalRemotePrompt(null)}
+        />
       </div>
     </div>
   );

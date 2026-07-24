@@ -55,14 +55,24 @@ export const AuthProvider = ({ children }) => {
     return () => disconnectSocket();
   }, []);
 
+  const [globalRemotePrompt, setGlobalRemotePrompt] = useState(null);
+
   // Initialize WebSockets
   const initSocket = (token) => {
-    connectSocket(token, (newNotify) => {
+    const s = connectSocket(token, (newNotify) => {
       // In-app notification received
       setNotifications(prev => [newNotify, ...prev]);
       setUnreadNotificationsCount(c => c + 1);
       showToast(newNotify.title, newNotify.message, newNotify.type.toLowerCase());
     });
+
+    if (s) {
+      s.on('remote:access_request_prompt', (reqData) => {
+        setGlobalRemotePrompt(reqData);
+        showToast('Remote Access Requested', `Technician ${reqData.technicianName} is requesting remote assistance`, 'warning');
+      });
+    }
+
     // Fetch notifications list
     fetchNotifications();
   };
@@ -152,7 +162,9 @@ export const AuthProvider = ({ children }) => {
       markAllNotificationsAsRead,
       markNotificationAsRead,
       toasts,
-      showToast
+      showToast,
+      globalRemotePrompt,
+      setGlobalRemotePrompt
     }}>
       {children}
     </AuthContext.Provider>
