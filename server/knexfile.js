@@ -1,11 +1,20 @@
 require('dotenv').config({ path: __dirname + '/.env' });
 const path = require('path');
+const fs = require('fs');
 
 const dbClient = process.env.DB_CLIENT || 'sqlite3';
 const isSqlite = dbClient === 'sqlite3';
 
+let sqliteDbPath = path.resolve(__dirname, process.env.DB_FILE || './data/nkb_itms.sqlite');
+if (isSqlite) {
+  const dbDir = path.dirname(sqliteDbPath);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+}
+
 const connection = isSqlite
-  ? { filename: path.resolve(__dirname, process.env.DB_FILE || './data/nkb_itms.sqlite') }
+  ? { filename: sqliteDbPath }
   : {
       host: process.env.DB_HOST || '127.0.0.1',
       port: process.env.DB_PORT || 3306,
