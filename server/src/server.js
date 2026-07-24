@@ -89,6 +89,7 @@ app.use('/api/file-shares', require('./routes/fileShares'));
 app.use('/api/guest-wifi', require('./routes/guestWifi'));
 app.use('/api/websites', require('./routes/websites'));
 app.use('/api/secrets', require('./routes/secrets'));
+app.use('/api/remote', require('./routes/remoteManagement'));
 
 // 7. Serve Static Frontend files
 const distPath = path.join(__dirname, '../../client/dist');

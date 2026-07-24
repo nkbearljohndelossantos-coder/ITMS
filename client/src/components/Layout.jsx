@@ -36,6 +36,7 @@ export default function Layout() {
       name: 'IT Operations Hub',
       icon: Server,
       items: [
+        { name: 'Remote Management', path: '/remote-management', icon: Radio, perm: 'remote_device.view' },
         { name: 'Backups', path: '/backups', icon: Database, perm: 'backups.view' },
         { name: 'Endpoint Security', path: '/endpoints', icon: Shield, perm: 'endpoint_security.view' },
         { name: 'Network & IP', path: '/network', icon: Network, perm: 'network.view' },
