@@ -15,6 +15,14 @@ client/dist/
 server/logs/
 build/
 
+# Database files (CRITICAL: Do NOT track SQLite databases in Git to prevent overwriting production data)
+*.sqlite
+*.sqlite3
+*.db
+server/data/*.sqlite
+server/data/*.sqlite3
+server/uploads/
+
 # IDE & OS files
 .vscode/
 .idea/
