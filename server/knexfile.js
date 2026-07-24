@@ -2,9 +2,7 @@ require('dotenv').config({ path: __dirname + '/.env' });
 const path = require('path');
 const fs = require('fs');
 
-// Auto-detect MySQL if DB_USER or DB_DATABASE environment variables are provided (e.g. on Hostinger production)
-const hasMysqlEnv = Boolean(process.env.DB_USER && process.env.DB_DATABASE);
-const dbClient = process.env.DB_CLIENT || (hasMysqlEnv ? 'mysql2' : 'sqlite3');
+const dbClient = process.env.DB_CLIENT || 'sqlite3';
 const isSqlite = dbClient === 'sqlite3';
 
 let sqliteDbPath = path.resolve(__dirname, process.env.DB_FILE || './data/nkb_itms.sqlite');
@@ -15,20 +13,19 @@ if (isSqlite) {
   }
 }
 
-const connection = isSqlite
-  ? { filename: sqliteDbPath }
-  : {
-      host: process.env.DB_HOST || '127.0.0.1',
-      port: process.env.DB_PORT || 3306,
-      user: process.env.DB_USER || 'u335953510_itms',
-      password: process.env.DB_PASSWORD || 'NkbManufacturing2026',
-      database: process.env.DB_DATABASE || 'u335953510_itms_db'
-    };
+const sqliteConnection = { filename: sqliteDbPath };
+const mysqlConnection = {
+  host: process.env.DB_HOST || '127.0.0.1',
+  port: process.env.DB_PORT || 3306,
+  user: process.env.DB_USER || 'u335953510_itms',
+  password: process.env.DB_PASSWORD || 'NkbManufacturing2026',
+  database: process.env.DB_DATABASE || 'u335953510_itms_db'
+};
 
 module.exports = {
   development: {
     client: dbClient,
-    connection: connection,
+    connection: isSqlite ? sqliteConnection : mysqlConnection,
     useNullAsDefault: isSqlite,
     pool: isSqlite ? {
       afterCreate: (conn, cb) => {
@@ -63,10 +60,10 @@ module.exports = {
   },
 
   production: {
-    client: dbClient,
-    connection: connection,
-    useNullAsDefault: isSqlite,
-    pool: isSqlite ? {
+    client: process.env.DB_CLIENT || 'mysql2',
+    connection: (process.env.DB_CLIENT === 'sqlite3') ? sqliteConnection : mysqlConnection,
+    useNullAsDefault: (process.env.DB_CLIENT === 'sqlite3'),
+    pool: (process.env.DB_CLIENT === 'sqlite3') ? {
       afterCreate: (conn, cb) => {
         conn.run('PRAGMA foreign_keys = ON', cb);
       }
