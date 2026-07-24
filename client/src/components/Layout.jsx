@@ -441,21 +441,6 @@ export default function Layout() {
             <Outlet />
           </div>
         </main>
-        {/* Global Endpoint Consent Prompt Modal */}
-        <AttendedRequestPromptModal
-          request={globalRemotePrompt}
-          onResponse={(reqCode, decision) => {
-            api.post('/remote/agent/consent', {
-              request_code: reqCode,
-              decision,
-              nonce: 'nonce-123',
-              timestamp: new Date().toISOString()
-            }, {
-              headers: { 'X-Endpoint-Signature': 'mock-signature' }
-            }).then(() => setGlobalRemotePrompt(null));
-          }}
-          onClose={() => setGlobalRemotePrompt(null)}
-        />
       </div>
     </div>
   );

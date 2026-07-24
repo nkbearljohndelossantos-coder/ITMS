@@ -55,27 +55,14 @@ export const AuthProvider = ({ children }) => {
     return () => disconnectSocket();
   }, []);
 
-  const [globalRemotePrompt, setGlobalRemotePrompt] = useState(null);
-
   // Initialize WebSockets
   const initSocket = (token) => {
-    const s = connectSocket(token, (newNotify) => {
+    connectSocket(token, (newNotify) => {
       // In-app notification received
       setNotifications(prev => [newNotify, ...prev]);
       setUnreadNotificationsCount(c => c + 1);
       showToast(newNotify.title, newNotify.message, newNotify.type.toLowerCase());
     });
-
-    if (s) {
-      s.on('remote:access_request_prompt', (reqData) => {
-        const savedUserStr = localStorage.getItem('user');
-        const currentUser = savedUserStr ? JSON.parse(savedUserStr) : null;
-        if (currentUser && reqData.technicianId !== currentUser.id) {
-          setGlobalRemotePrompt(reqData);
-          showToast('Remote Access Requested', `Technician ${reqData.technicianName} is requesting remote assistance`, 'warning');
-        }
-      });
-    }
 
     // Fetch notifications list
     fetchNotifications();

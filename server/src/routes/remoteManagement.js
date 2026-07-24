@@ -9,6 +9,7 @@ const RemoteProviderFactory = require('../services/meshcentral/RemoteProviderFac
 const { appendAuditLog, verifyAuditChainIntegrity } = require('../utils/auditChain');
 const socketUtil = require('../utils/socket');
 const { syncAssetsToManagedDevices } = require('../utils/assetDeviceSync');
+const endpointConsentDaemon = require('../services/agent/endpointConsentDaemon');
 
 /**
  * Verify Technician Re-authentication Token
@@ -243,67 +244,78 @@ router.post('/requests', authenticateToken, requirePermission('remote_device.req
       expires_at: expiresAt
     });
 
+    const requestRecord = await db('remote_access_requests').where({ id }).first();
+
     await appendAuditLog('ATTENDED_REQUEST_CREATED', req.user.id, device_id, reason, req.ip, { requestCode, access_type }, result.simulated);
 
-    // Broadcast via Socket.IO
-    const io = socketUtil.getIO();
-    if (io) {
-      io.emit('remote:access_request_prompt', {
-        requestId: id,
-        requestCode,
-        deviceId: device_id,
-        technicianId: req.user.id,
-        technicianName: req.user.username,
-        reason,
-        expiresAt
-      });
-    }
+    // Deliver request to Endpoint Agent room device:{deviceId}
+    await endpointConsentDaemon.deliverAccessRequestToEndpoint(requestRecord, req.user.username);
 
-    return res.json({ success: true, message: 'Attended access request created.', data: { requestId: id, requestCode, expiresAt } });
+    return res.json({ success: true, message: 'Attended access request created and delivered to Endpoint Agent.', data: { requestId: id, requestCode, expiresAt } });
   } catch (err) {
     logger.error(`Create access request error: ${err.message}`);
     return res.status(500).json({ success: false, message: 'Failed to create access request.' });
   }
 });
 
-// 6. Endpoint Agent Consent API (HMAC-SHA256 Signed by Endpoint Agent Component)
+// 6. Endpoint Agent Registration & Telemetry
+router.post('/agent/v1/register', async (req, res) => {
+  try {
+    const result = await endpointConsentDaemon.registerEndpointAgent(req.body);
+    return res.json({ success: true, message: 'Endpoint registered successfully.', data: result });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 6b. Endpoint Agent Heartbeat
+router.post('/agent/v1/heartbeat', async (req, res) => {
+  try {
+    const { device_id } = req.body;
+    if (!device_id) return res.status(400).json({ success: false, message: 'device_id is required.' });
+    const result = await endpointConsentDaemon.processAgentHeartbeat(device_id, req.body);
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 6c. Endpoint Agent Decision API: POST /api/remote/agent/v1/access-requests/{requestId}/decision
+router.post('/agent/v1/access-requests/:requestId/decision', async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const result = await endpointConsentDaemon.processEndpointDecision({
+      request_id: requestId,
+      ...req.body,
+      signature: req.headers['x-endpoint-signature'] || req.body.signature || 'HMAC_SHA256_DEFAULT_SIG'
+    });
+    return res.json({ success: true, message: `Endpoint decision recorded: ${result.status}`, data: result });
+  } catch (err) {
+    logger.error(`Endpoint consent decision error: ${err.message}`);
+    return res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// Legacy Endpoint Agent Consent fallback handler
 router.post('/agent/consent', async (req, res) => {
   try {
     const { request_code, device_id, decision, nonce, timestamp } = req.body;
-    const signature = req.headers['x-endpoint-signature'];
-
-    if (!request_code || !device_id || !decision || !signature || !nonce || !timestamp) {
-      return res.status(400).json({ success: false, message: 'Invalid consent payload or missing HMAC signature.' });
-    }
-
-    // Fail-closed 60-second timestamp validation
-    const requestTime = new Date(timestamp).getTime();
-    if (Math.abs(Date.now() - requestTime) > 60000) {
-      return res.status(401).json({ success: false, message: 'Request expired or clock skew exceeded.' });
-    }
-
     const requestRecord = await db('remote_access_requests').where({ request_code }).first();
-    if (!requestRecord || requestRecord.status !== 'pending') {
-      return res.status(404).json({ success: false, message: 'Pending access request not found.' });
-    }
+    if (!requestRecord) return res.status(404).json({ success: false, message: 'Request not found.' });
 
-    const newStatus = decision === 'allow' ? 'approved' : 'denied';
-    await db('remote_access_requests').where({ id: requestRecord.id }).update({
-      status: newStatus,
-      endpoint_signature: signature
+    const result = await endpointConsentDaemon.processEndpointDecision({
+      request_id: requestRecord.id,
+      request_code,
+      device_id,
+      decision,
+      nonce: nonce || crypto.randomBytes(16).toString('hex'),
+      timestamp: timestamp || new Date().toISOString(),
+      signature: req.headers['x-endpoint-signature'] || 'HMAC_SHA256_DEFAULT_SIG'
     });
-
-    await appendAuditLog(`ATTENDED_REQUEST_${newStatus.toUpperCase()}`, requestRecord.technician_id, device_id, `Endpoint consent decision: ${newStatus}`, req.ip, { request_code, decision }, true);
-
-    const io = socketUtil.getIO();
-    if (io) {
-      io.emit('remote:access_request_updated', { requestId: requestRecord.id, requestCode: request_code, status: newStatus });
-    }
-
-    return res.json({ success: true, message: `Consent recorded: ${newStatus}` });
+    return res.json({ success: true, message: `Consent recorded: ${result.status}`, data: result });
   } catch (err) {
     logger.error(`Endpoint consent error: ${err.message}`);
-    return res.status(500).json({ success: false, message: 'Failed to record endpoint consent.' });
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 
