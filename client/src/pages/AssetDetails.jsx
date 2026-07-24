@@ -449,7 +449,21 @@ export default function AssetDetails() {
   }
 
   if (!asset) {
-    return <div className="p-8 text-center text-slate-500">Asset not found.</div>;
+    return (
+      <div className="p-12 text-center space-y-4 bg-white border border-slate-200 rounded-xl shadow-sm max-w-md mx-auto my-12">
+        <Laptop className="h-12 w-12 text-slate-300 mx-auto" />
+        <h3 className="font-bold text-slate-800 text-lg">Asset Profile Not Found</h3>
+        <p className="text-xs text-slate-500">
+          The requested asset profile (ID: <span className="font-mono font-semibold text-slate-700">{id}</span>) does not exist in the database or was deleted during data cleanup.
+        </p>
+        <button
+          onClick={() => navigate('/assets')}
+          className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-gold-650 transition-colors cursor-pointer"
+        >
+          Return to Assets Register
+        </button>
+      </div>
+    );
   }
 
   return (
