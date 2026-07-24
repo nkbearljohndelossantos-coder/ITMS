@@ -153,9 +153,7 @@ export const AuthProvider = ({ children }) => {
       markAllNotificationsAsRead,
       markNotificationAsRead,
       toasts,
-      showToast,
-      globalRemotePrompt,
-      setGlobalRemotePrompt
+      showToast
     }}>
       {children}
     </AuthContext.Provider>
