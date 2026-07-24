@@ -61,9 +61,18 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // 5. Static folders serving
-// Handle favicon requests gracefully to avoid 403 browser console warnings
-app.get('/favicon.ico', (req, res) => res.status(204).end());
-app.get('/api/favicon.ico', (req, res) => res.status(204).end());
+// Handle favicon requests gracefully to serve favicon.ico file or 204
+app.get(['/favicon.ico', '/api/favicon.ico'], (req, res) => {
+  const icoPath = path.join(__dirname, '../../client/dist/favicon.ico');
+  if (fs.existsSync(icoPath)) {
+    return res.sendFile(icoPath);
+  }
+  const publicIcoPath = path.join(__dirname, '../../client/public/favicon.ico');
+  if (fs.existsSync(publicIcoPath)) {
+    return res.sendFile(publicIcoPath);
+  }
+  return res.status(204).end();
+});
 
 // Serve uploads folder
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
