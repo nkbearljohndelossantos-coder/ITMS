@@ -53,7 +53,11 @@ export default function AssetDetails() {
       if (deptRes.data.success) setDepartments(deptRes.data.data);
 
     } catch (err) {
-      showToast('Error', 'Failed to retrieve asset details profile.', 'error');
+      if (err.response?.status === 404) {
+        setAsset(null);
+      } else {
+        showToast('Error', 'Failed to retrieve asset details profile.', 'error');
+      }
     } finally {
       setLoading(false);
     }
