@@ -2,7 +2,9 @@ require('dotenv').config({ path: __dirname + '/.env' });
 const path = require('path');
 const fs = require('fs');
 
-const dbClient = process.env.DB_CLIENT || 'sqlite3';
+// Auto-detect MySQL if DB_USER or DB_DATABASE environment variables are provided (e.g. on Hostinger production)
+const hasMysqlEnv = Boolean(process.env.DB_USER && process.env.DB_DATABASE);
+const dbClient = process.env.DB_CLIENT || (hasMysqlEnv ? 'mysql2' : 'sqlite3');
 const isSqlite = dbClient === 'sqlite3';
 
 let sqliteDbPath = path.resolve(__dirname, process.env.DB_FILE || './data/nkb_itms.sqlite');
