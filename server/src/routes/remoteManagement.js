@@ -35,9 +35,102 @@ async function verifyReauthToken(userId, deviceId, actionType, tokenString) {
   return true;
 }
 
+async function ensureSampleDevices() {
+  const count = await db('managed_devices').count('* as count').first();
+  if (parseInt(count.count) === 0) {
+    const sampleDevices = [
+      {
+        device_id: 'DEV-WIN11-OFFICE01',
+        name: 'NKB-DESKTOP-JDELOSSANTOS',
+        ip_address: '192.168.10.105',
+        mac_address: '74:56:3C:99:A1:B2',
+        os_name: 'Windows 11 Pro 23H2',
+        os_version: '10.0.22631',
+        logged_in_user: 'NKB\\jdelossantos',
+        agent_version: 'v1.2.4',
+        is_online: true,
+        remote_access_enabled: true,
+        protected_status: false,
+        approved_access_mode: 'attended',
+        is_simulated: true,
+        last_heartbeat: new Date()
+      },
+      {
+        device_id: 'DEV-SERVER-MAINSQL',
+        name: 'NKB-SRV-DATABASESQL01',
+        ip_address: '192.168.10.200',
+        mac_address: '00:50:56:A1:B2:C3',
+        os_name: 'Windows Server 2022 Datacenter',
+        os_version: '10.0.20348',
+        logged_in_user: 'NT AUTHORITY\\SYSTEM',
+        agent_version: 'v1.2.4',
+        is_online: true,
+        remote_access_enabled: true,
+        protected_status: true,
+        approved_access_mode: 'unattended',
+        is_simulated: true,
+        last_heartbeat: new Date()
+      },
+      {
+        device_id: 'DEV-WORKSTATION-CAD',
+        name: 'NKB-CAD-ENGINEERING03',
+        ip_address: '192.168.10.112',
+        mac_address: '3C:7C:3F:88:11:22',
+        os_name: 'Windows 11 Enterprise 23H2',
+        os_version: '10.0.22631',
+        logged_in_user: 'NKB\\engineer01',
+        agent_version: 'v1.2.4',
+        is_online: true,
+        remote_access_enabled: true,
+        protected_status: false,
+        approved_access_mode: 'attended',
+        is_simulated: true,
+        last_heartbeat: new Date()
+      },
+      {
+        device_id: 'DEV-PLANT-MONITOR02',
+        name: 'NKB-PLANT-MONITORING02',
+        ip_address: '192.168.10.180',
+        mac_address: 'A4:BB:6D:44:55:66',
+        os_name: 'Windows 10 Enterprise LTSC',
+        os_version: '10.0.19045',
+        logged_in_user: 'NKB\\plantoperator',
+        agent_version: 'v1.2.4',
+        is_online: true,
+        remote_access_enabled: true,
+        protected_status: false,
+        approved_access_mode: 'attended',
+        is_simulated: true,
+        last_heartbeat: new Date()
+      },
+      {
+        device_id: 'DEV-LAPTOP-MGMT05',
+        name: 'NKB-NB-MANAGER05',
+        ip_address: '192.168.10.155',
+        mac_address: 'E8:9C:25:33:44:55',
+        os_name: 'Windows 11 Pro 23H2',
+        os_version: '10.0.22631',
+        logged_in_user: 'NKB\\manager05',
+        agent_version: 'v1.2.4',
+        is_online: false,
+        remote_access_enabled: true,
+        protected_status: false,
+        approved_access_mode: 'attended',
+        is_simulated: true,
+        last_heartbeat: new Date(Date.now() - 3600000)
+      }
+    ];
+
+    for (const dev of sampleDevices) {
+      await db('managed_devices').insert(dev);
+    }
+  }
+}
+
 // 1. Dashboard Summary & Telemetry Counters
 router.get('/dashboard', authenticateToken, requirePermission('remote_device.view'), async (req, res) => {
   try {
+    await ensureSampleDevices();
     const isSimulated = RemoteProviderFactory.getEffectiveMode() === 'simulation';
     const totalDevices = await db('managed_devices').count('* as count').first();
     const onlineDevices = await db('managed_devices').where('is_online', true).count('* as count').first();
@@ -76,6 +169,7 @@ router.get('/dashboard', authenticateToken, requirePermission('remote_device.vie
 // 2. Devices Listing
 router.get('/devices', authenticateToken, requirePermission('remote_device.view'), async (req, res) => {
   try {
+    await ensureSampleDevices();
     const { department_id, is_online, search } = req.query;
     let query = db('managed_devices as d')
       .leftJoin('employees as e', 'd.employee_id', 'e.id')
