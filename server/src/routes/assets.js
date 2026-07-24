@@ -8,6 +8,7 @@ const { getNextNumber } = require('../utils/numberSequence');
 const { uploadImage, uploadDocument } = require('../utils/uploader');
 const path = require('path');
 const fs = require('fs');
+const { syncAssetsToManagedDevices } = require('../utils/assetDeviceSync');
 
 // Get all assets (paginated, searched, filtered)
 router.get('/', authenticateToken, requirePermission('assets.view'), async (req, res) => {
@@ -227,6 +228,9 @@ router.post('/', authenticateToken, requirePermission('assets.create'), uploadIm
 
     const newAsset = await db('assets').where('id', newAssetId).first();
     await logAudit(req, { action: 'Create Asset', module: 'Assets', recordId: newAssetId, newValues: newAsset });
+
+    // Synchronize to Remote Devices
+    syncAssetsToManagedDevices().catch(err => logger.error(`Asset sync error: ${err.message}`));
 
     return res.json({
       success: true,

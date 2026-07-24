@@ -204,6 +204,18 @@ export default function RemoteManagement() {
     }
   };
 
+  const handleSyncAssets = async () => {
+    try {
+      const res = await api.post('/remote/sync-assets');
+      if (res.data.success) {
+        alert(res.data.message);
+        loadDashboard();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleSignoffGate = (checkCode) => {
     api.post('/remote/settings/production-gate/signoff', { check_code: checkCode })
       .then(() => loadDashboard());
@@ -244,7 +256,14 @@ export default function RemoteManagement() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSyncAssets}
+            className="px-3 py-2 bg-gold-600 hover:bg-gold-650 text-slate-950 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            <span>Sync IT Assets</span>
+          </button>
           <button
             onClick={loadDashboard}
             className="px-3 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 rounded-lg text-xs font-bold flex items-center gap-1.5 border border-slate-700 cursor-pointer"

@@ -8,6 +8,7 @@ const { authenticateToken, requirePermission } = require('../middleware/auth');
 const RemoteProviderFactory = require('../services/meshcentral/RemoteProviderFactory');
 const { appendAuditLog, verifyAuditChainIntegrity } = require('../utils/auditChain');
 const socketUtil = require('../utils/socket');
+const { syncAssetsToManagedDevices } = require('../utils/assetDeviceSync');
 
 /**
  * Verify Technician Re-authentication Token
@@ -36,6 +37,7 @@ async function verifyReauthToken(userId, deviceId, actionType, tokenString) {
 }
 
 async function ensureSampleDevices() {
+  await syncAssetsToManagedDevices();
   const count = await db('managed_devices').count('* as count').first();
   if (parseInt(count.count) === 0) {
     const sampleDevices = [
@@ -287,6 +289,17 @@ router.post('/reauth', authenticateToken, async (req, res) => {
   } catch (err) {
     logger.error(`Re-authentication error: ${err.message}`);
     return res.status(500).json({ success: false, message: 'Re-authentication failed.' });
+  }
+});
+
+// Sync IT Assets to Managed Devices
+router.post('/sync-assets', authenticateToken, requirePermission('remote_device.view'), async (req, res) => {
+  try {
+    const syncedCount = await syncAssetsToManagedDevices();
+    return res.json({ success: true, message: `Successfully synchronized ${syncedCount} IT assets into remotable devices.`, data: { syncedCount } });
+  } catch (err) {
+    logger.error(`Sync IT assets error: ${err.message}`);
+    return res.status(500).json({ success: false, message: 'Failed to synchronize IT assets.' });
   }
 });
 
