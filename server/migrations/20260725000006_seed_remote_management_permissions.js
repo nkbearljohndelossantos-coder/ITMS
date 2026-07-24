@@ -19,14 +19,27 @@ exports.up = async function(knex) {
     { code: 'remote_device.manage_settings', name: 'Manage Remote Settings', description: 'Allows configuring gateway settings and Production Gate signoff' }
   ];
 
+  const superAdminRole = await knex('roles').where({ id: 1 }).first();
+  const itManagerRole = await knex('roles').where({ id: 2 }).first();
+
   for (const perm of remotePermissions) {
+    let permId;
     const existing = await knex('permissions').where({ code: perm.code }).first();
     if (!existing) {
       const [id] = await knex('permissions').insert(perm);
-      const permId = Array.isArray(id) ? id[0] : id;
-      // Assign to Super Admin (role_id 1) and IT Manager (role_id 2)
-      await knex('role_permissions').insert({ role_id: 1, permission_id: permId });
-      await knex('role_permissions').insert({ role_id: 2, permission_id: permId });
+      permId = Array.isArray(id) ? id[0] : id;
+    } else {
+      permId = existing.id;
+    }
+
+    if (superAdminRole) {
+      const rp1 = await knex('role_permissions').where({ role_id: 1, permission_id: permId }).first();
+      if (!rp1) await knex('role_permissions').insert({ role_id: 1, permission_id: permId });
+    }
+
+    if (itManagerRole) {
+      const rp2 = await knex('role_permissions').where({ role_id: 2, permission_id: permId }).first();
+      if (!rp2) await knex('role_permissions').insert({ role_id: 2, permission_id: permId });
     }
   }
 
@@ -73,7 +86,6 @@ exports.up = async function(knex) {
 };
 
 exports.down = async function(knex) {
-  // Idempotent migration down: clean up remote permissions, settings, and gates
   const codes = [
     'remote_device.view', 'remote_device.request_access', 'remote_device.control', 'remote_device.view_only',
     'remote_device.unattended', 'remote_device.file_transfer', 'remote_device.terminal', 'remote_device.process_manage',
