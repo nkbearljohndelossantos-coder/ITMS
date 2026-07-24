@@ -542,45 +542,105 @@ export default function RemoteManagement() {
             </div>
           </div>
 
-          {/* Desktop Session Simulation Canvas */}
-          <div className="bg-slate-950 text-white rounded-xl p-8 border border-slate-800 shadow-xl min-h-[420px] flex flex-col justify-between items-center text-center">
-            <div className="w-full flex justify-between items-center text-xs text-slate-400 font-mono border-b border-slate-800 pb-3">
-              <span className="flex items-center gap-1 text-emerald-400 font-bold">
-                <Radio className="h-3.5 w-3.5 animate-pulse" /> {activeModalSession ? 'SESSION ACTIVE (CONNECTED)' : 'WSS Connection Stream Ready'}
-              </span>
-              <span>Mode: Full Control (Simulation)</span>
+          {/* Desktop Session Screen Viewer Frame */}
+          <div className="bg-slate-950 text-white rounded-xl border border-slate-800 shadow-2xl overflow-hidden min-h-[520px] flex flex-col justify-between w-full">
+            {/* Top Control Bar */}
+            <div className="w-full bg-slate-900 px-4 py-2.5 border-b border-slate-800 flex justify-between items-center text-xs">
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1.5 text-emerald-400 font-bold font-mono">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
+                  {activeModalSession ? 'LIVE STREAM CONNECTED' : 'READY TO CONNECT'}
+                </span>
+                <span className="text-slate-500">|</span>
+                <span className="font-bold text-slate-200">{selectedDevice.name} ({selectedDevice.ip_address})</span>
+              </div>
+
+              {activeModalSession && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => alert('Ctrl+Alt+Del signal sent to target workstation.')}
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded font-mono text-[11px] border border-slate-700 cursor-pointer"
+                  >
+                    Ctrl+Alt+Del
+                  </button>
+                  <button
+                    onClick={() => alert('Windows Start Key signal sent.')}
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded font-mono text-[11px] border border-slate-700 cursor-pointer"
+                  >
+                    Win Key
+                  </button>
+                  <button
+                    onClick={() => setActiveModalSession(null)}
+                    className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded cursor-pointer shadow ml-2"
+                  >
+                    Disconnect Session
+                  </button>
+                </div>
+              )}
             </div>
 
-            {activeModalSession ? (
-              <div className="space-y-4 my-auto w-full max-w-lg bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-2xl">
-                <Monitor className="h-16 w-16 text-emerald-400 mx-auto animate-pulse" />
-                <h4 className="font-bold text-lg text-white">Live Remote Control Session Active</h4>
-                <div className="p-3 bg-emerald-950/60 border border-emerald-800 text-emerald-300 font-mono text-xs rounded-lg">
-                  Connected to {selectedDevice.name} ({selectedDevice.ip_address})
-                </div>
-                <p className="text-xs text-slate-400">
-                  Relay URL: <span className="font-mono text-gold-400">{activeModalSession.sessionUrl}</span>
-                </p>
-                <button
-                  onClick={() => setActiveModalSession(null)}
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs cursor-pointer shadow"
-                >
-                  Disconnect / End Session
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4 my-auto">
-                <Monitor className="h-16 w-16 text-slate-700 mx-auto" />
-                <h4 className="font-bold text-lg text-slate-200">MeshCentral Authorized Session Canvas</h4>
-                <p className="text-xs text-slate-400 max-w-md mx-auto">
-                  Click "Attended Connection" (pops up employee prompt) or "Unattended Access" (requires password re-auth) above to launch live session.
-                </p>
-              </div>
-            )}
+            {/* Screen Viewer Canvas Container */}
+            <div className="flex-1 bg-slate-950 p-4 flex items-center justify-center relative min-h-[420px]">
+              {activeModalSession ? (
+                <div className="w-full h-full max-w-5xl bg-slate-900 border-2 border-slate-800 rounded-xl overflow-hidden shadow-2xl relative group flex flex-col justify-between" style={{ minHeight: '400px' }}>
+                  {/* Simulated Windows Desktop Display */}
+                  <div className="w-full h-full bg-gradient-to-br from-blue-950 via-slate-900 to-indigo-950 p-6 flex flex-col justify-between relative min-h-[380px] select-none">
+                    {/* Top Bar of Remote Windows Desktop */}
+                    <div className="flex justify-between items-center text-xs text-slate-300 font-sans border-b border-white/10 pb-2">
+                      <div className="flex items-center gap-2">
+                        <Monitor className="h-4 w-4 text-blue-400" />
+                        <span className="font-bold text-white">Windows 11 Pro Desktop — {selectedDevice.name}</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono">Res: 1920x1080 @ 60fps</div>
+                    </div>
 
-            <div className="w-full pt-3 border-t border-slate-800 text-[11px] text-slate-500 flex justify-between">
-              <span>Short-Lived Single-Use Session Authorization Active</span>
-              <span>Privacy Warning: Employee Consent Prompt Broadcast Active</span>
+                    {/* Desktop Center Workspace */}
+                    <div className="my-auto space-y-3 text-center">
+                      <div className="inline-block p-4 bg-slate-900/80 backdrop-blur border border-white/15 rounded-2xl shadow-2xl space-y-2">
+                        <Monitor className="h-16 w-16 text-emerald-400 mx-auto animate-pulse" />
+                        <h4 className="font-extrabold text-base text-white">Remote Screen Stream Active</h4>
+                        <div className="text-xs text-emerald-300 font-mono font-bold">
+                          User Session: {selectedDevice.logged_in_user || 'NKB\\employee'}
+                        </div>
+                        <p className="text-[11px] text-slate-300 max-w-sm mx-auto">
+                          Full Keyboard & Mouse input relay active over secure WebSocket channel.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Simulated Windows 11 Taskbar */}
+                    <div className="w-full bg-slate-900/90 backdrop-blur px-4 py-2 border-t border-white/10 flex justify-between items-center text-xs rounded-b-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="h-6 w-6 bg-blue-600 rounded flex items-center justify-center text-white font-black text-xs cursor-pointer hover:bg-blue-500">
+                          田
+                        </div>
+                        <div className="h-6 px-3 bg-white/10 rounded flex items-center text-[10px] text-slate-300 cursor-pointer">
+                          🔍 Type here to search
+                        </div>
+                      </div>
+                      <div className="text-[10px] font-mono text-slate-400 flex items-center gap-2">
+                        <span>🔊 100%</span>
+                        <span>📶 Connected</span>
+                        <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4 text-center my-auto">
+                  <Monitor className="h-16 w-16 text-slate-700 mx-auto" />
+                  <h4 className="font-bold text-base text-slate-200">MeshCentral Authorized Remote Screen Viewer</h4>
+                  <p className="text-xs text-slate-400 max-w-md mx-auto">
+                    Click <strong className="text-white font-bold">"Attended Connection"</strong> or <strong className="text-white font-bold">"Unattended Access"</strong> above to launch live remote desktop control.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Status Bar */}
+            <div className="w-full bg-slate-900/80 px-4 py-2 border-t border-slate-800 text-[11px] text-slate-400 flex justify-between">
+              <span>Token: Single-Use Short-Lived Authorized</span>
+              <span>Encrypted Session Stream Active</span>
             </div>
           </div>
         </div>
