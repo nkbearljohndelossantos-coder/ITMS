@@ -12,17 +12,21 @@ const fs = require('fs');
 // Get all assets (paginated, searched, filtered)
 router.get('/', authenticateToken, requirePermission('assets.view'), async (req, res) => {
   const { page = 1, limit = 10, search = '', categoryId = '', status = '', condition = '', warrantyExpiring = 'false' } = req.query;
+  const isSqlite = db.client.config.client === 'sqlite3';
+  const concatEmpName = isSqlite 
+    ? db.raw("(employees.first_name || ' ' || employees.last_name) as employee_name") 
+    : db.raw("concat(employees.first_name, ' ', employees.last_name) as employee_name");
 
   try {
     const query = db('assets')
-      .join('asset_categories', 'assets.category_id', 'asset_categories.id')
+      .leftJoin('asset_categories', 'assets.category_id', 'asset_categories.id')
       .leftJoin('departments', 'assets.department_id', 'departments.id')
       .leftJoin('employees', 'assets.employee_id', 'employees.id')
       .select(
         'assets.*',
         'asset_categories.name as category_name',
         'departments.name as department_name',
-        db.raw("concat(employees.first_name, ' ', employees.last_name) as employee_name")
+        concatEmpName
       );
 
     // Filters
@@ -82,22 +86,28 @@ router.get('/', authenticateToken, requirePermission('assets.view'), async (req,
   }
 });
 
-// Get single asset profile by ID
+// Get single asset profile by ID or Asset Code
 router.get('/:id', authenticateToken, requirePermission('assets.view'), async (req, res) => {
   const { id } = req.params;
+  const isSqlite = db.client.config.client === 'sqlite3';
+  const concatEmpName = isSqlite 
+    ? db.raw("(employees.first_name || ' ' || employees.last_name) as employee_name") 
+    : db.raw("concat(employees.first_name, ' ', employees.last_name) as employee_name");
 
   try {
     const asset = await db('assets')
-      .join('asset_categories', 'assets.category_id', 'asset_categories.id')
+      .leftJoin('asset_categories', 'assets.category_id', 'asset_categories.id')
       .leftJoin('departments', 'assets.department_id', 'departments.id')
       .leftJoin('employees', 'assets.employee_id', 'employees.id')
       .select(
         'assets.*',
         'asset_categories.name as category_name',
         'departments.name as department_name',
-        db.raw("concat(employees.first_name, ' ', employees.last_name) as employee_name")
+        concatEmpName
       )
-      .where('assets.id', id)
+      .where((builder) => {
+        builder.where('assets.id', id).orWhere('assets.asset_code', id);
+      })
       .first();
 
     if (!asset) {
@@ -105,13 +115,13 @@ router.get('/:id', authenticateToken, requirePermission('assets.view'), async (r
     }
 
     // Retrieve supporting documents
-    const documents = await db('asset_documents').where('asset_id', id);
+    const documents = await db('asset_documents').where('asset_id', asset.id);
 
     // Retrieve history log
     const history = await db('asset_history')
       .leftJoin('users', 'asset_history.performed_by', 'users.id')
       .select('asset_history.*', 'users.username as performed_by_username')
-      .where('asset_history.asset_id', id)
+      .where('asset_history.asset_id', asset.id)
       .orderBy('asset_history.created_at', 'desc');
 
     // Retrieve active assignments
@@ -120,10 +130,10 @@ router.get('/:id', authenticateToken, requirePermission('assets.view'), async (r
       .leftJoin('departments', 'asset_assignments.department_id', 'departments.id')
       .select(
         'asset_assignments.*',
-        db.raw("concat(employees.first_name, ' ', employees.last_name) as employee_name"),
+        concatEmpName,
         'departments.name as department_name'
       )
-      .where('asset_assignments.asset_id', id)
+      .where('asset_assignments.asset_id', asset.id)
       .orderBy('asset_assignments.created_at', 'desc');
 
     return res.json({

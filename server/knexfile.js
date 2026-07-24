@@ -1,20 +1,29 @@
 require('dotenv').config({ path: __dirname + '/.env' });
 const path = require('path');
 
-// Official Hostinger Database Configuration
-const mysqlConnection = {
-  host: process.env.DB_HOST || '127.0.0.1',
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER || 'u335953510_itms',
-  password: process.env.DB_PASSWORD || 'NkbManufacturing2026',
-  database: process.env.DB_DATABASE || 'u335953510_itms_db'
-};
+const dbClient = process.env.DB_CLIENT || 'sqlite3';
+const isSqlite = dbClient === 'sqlite3';
+
+const connection = isSqlite
+  ? { filename: path.resolve(__dirname, process.env.DB_FILE || './data/nkb_itms.sqlite') }
+  : {
+      host: process.env.DB_HOST || '127.0.0.1',
+      port: process.env.DB_PORT || 3306,
+      user: process.env.DB_USER || 'u335953510_itms',
+      password: process.env.DB_PASSWORD || 'NkbManufacturing2026',
+      database: process.env.DB_DATABASE || 'u335953510_itms_db'
+    };
 
 module.exports = {
   development: {
-    client: 'mysql2',
-    connection: mysqlConnection,
-    pool: { min: 2, max: 10 },
+    client: dbClient,
+    connection: connection,
+    useNullAsDefault: isSqlite,
+    pool: isSqlite ? {
+      afterCreate: (conn, cb) => {
+        conn.run('PRAGMA foreign_keys = ON', cb);
+      }
+    } : { min: 2, max: 10 },
     migrations: {
       directory: path.join(__dirname, 'migrations')
     },
@@ -43,12 +52,14 @@ module.exports = {
   },
 
   production: {
-    client: 'mysql2',
-    connection: mysqlConnection,
-    pool: {
-      min: 2,
-      max: 10
-    },
+    client: dbClient,
+    connection: connection,
+    useNullAsDefault: isSqlite,
+    pool: isSqlite ? {
+      afterCreate: (conn, cb) => {
+        conn.run('PRAGMA foreign_keys = ON', cb);
+      }
+    } : { min: 2, max: 10 },
     migrations: {
       directory: path.join(__dirname, 'migrations')
     },
