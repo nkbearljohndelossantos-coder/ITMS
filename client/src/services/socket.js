@@ -30,7 +30,12 @@ export const connectSocket = (token, onNotificationReceived) => {
   });
 
   socket.on('connect_error', (err) => {
-    console.error('Socket connection error:', err.message);
+    if (err.message === 'Invalid token' || err.message === 'Authentication token required') {
+      console.warn('Socket authentication token expired or invalid. Disconnecting socket until re-login.');
+      if (socket) socket.disconnect();
+    } else {
+      console.error('Socket connection error:', err.message);
+    }
   });
 
   return socket;

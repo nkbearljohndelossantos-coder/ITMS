@@ -38,7 +38,10 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('user', JSON.stringify(updatedUser));
             
             // Connect to real-time notification socket
-            initSocket(token);
+            const activeToken = localStorage.getItem('accessToken');
+            if (activeToken) {
+              initSocket(activeToken);
+            }
           }
         } catch (err) {
           console.error('Failed to restore user session:', err.message);
