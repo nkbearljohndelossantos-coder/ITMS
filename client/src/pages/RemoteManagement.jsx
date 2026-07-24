@@ -185,16 +185,35 @@ export default function RemoteManagement() {
   const handleLaunchDesktop = (mode) => {
     const actionKey = mode === 'unattended' ? 'UNATTENDED_ACCESS' : 'REMOTE_DESKTOP';
     const executeLaunch = (token) => {
-      api.post('/remote/sessions/launch', {
-        device_id: selectedDevice.device_id,
-        access_mode: mode,
-        connection_type: 'Full Control',
-        reauth_token: token
-      }).then(res => {
-        if (res.data.success) {
-          setActiveModalSession(res.data.data);
-        }
-      });
+      if (mode === 'attended') {
+        api.post('/remote/requests', {
+          device_id: selectedDevice.device_id,
+          access_type: 'full_control',
+          reason: 'IT Remote Support Assistance'
+        }).then(res => {
+          if (res.data.success) {
+            setAttendedPromptRequest({
+              requestCode: res.data.data.requestCode,
+              deviceId: selectedDevice.device_id,
+              technicianName: 'IT Support Technician',
+              reason: 'IT Remote Support Assistance'
+            });
+          }
+        }).catch(err => {
+          console.error(err);
+        });
+      } else {
+        api.post('/remote/sessions/launch', {
+          device_id: selectedDevice.device_id,
+          access_mode: mode,
+          connection_type: 'Full Control',
+          reauth_token: token
+        }).then(res => {
+          if (res.data.success) {
+            setActiveModalSession(res.data.data);
+          }
+        });
+      }
     };
 
     if (mode === 'unattended') {
@@ -527,18 +546,37 @@ export default function RemoteManagement() {
           <div className="bg-slate-950 text-white rounded-xl p-8 border border-slate-800 shadow-xl min-h-[420px] flex flex-col justify-between items-center text-center">
             <div className="w-full flex justify-between items-center text-xs text-slate-400 font-mono border-b border-slate-800 pb-3">
               <span className="flex items-center gap-1 text-emerald-400 font-bold">
-                <Radio className="h-3.5 w-3.5 animate-pulse" /> WSS Connection Stream Ready
+                <Radio className="h-3.5 w-3.5 animate-pulse" /> {activeModalSession ? 'SESSION ACTIVE (CONNECTED)' : 'WSS Connection Stream Ready'}
               </span>
               <span>Mode: Full Control (Simulation)</span>
             </div>
 
-            <div className="space-y-4 my-auto">
-              <Monitor className="h-16 w-16 text-slate-700 mx-auto" />
-              <h4 className="font-bold text-lg text-slate-200">MeshCentral Authorized Session Canvas</h4>
-              <p className="text-xs text-slate-400 max-w-md mx-auto">
-                Authorized short-lived session token generated. Click "Attended Connection" or "Unattended Access" above to initialize live viewer relay.
-              </p>
-            </div>
+            {activeModalSession ? (
+              <div className="space-y-4 my-auto w-full max-w-lg bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-2xl">
+                <Monitor className="h-16 w-16 text-emerald-400 mx-auto animate-pulse" />
+                <h4 className="font-bold text-lg text-white">Live Remote Control Session Active</h4>
+                <div className="p-3 bg-emerald-950/60 border border-emerald-800 text-emerald-300 font-mono text-xs rounded-lg">
+                  Connected to {selectedDevice.name} ({selectedDevice.ip_address})
+                </div>
+                <p className="text-xs text-slate-400">
+                  Relay URL: <span className="font-mono text-gold-400">{activeModalSession.sessionUrl}</span>
+                </p>
+                <button
+                  onClick={() => setActiveModalSession(null)}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs cursor-pointer shadow"
+                >
+                  Disconnect / End Session
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4 my-auto">
+                <Monitor className="h-16 w-16 text-slate-700 mx-auto" />
+                <h4 className="font-bold text-lg text-slate-200">MeshCentral Authorized Session Canvas</h4>
+                <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  Click "Attended Connection" (pops up employee prompt) or "Unattended Access" (requires password re-auth) above to launch live session.
+                </p>
+              </div>
+            )}
 
             <div className="w-full pt-3 border-t border-slate-800 text-[11px] text-slate-500 flex justify-between">
               <span>Short-Lived Single-Use Session Authorization Active</span>
@@ -912,7 +950,20 @@ export default function RemoteManagement() {
             timestamp: new Date().toISOString()
           }, {
             headers: { 'X-Endpoint-Signature': 'mock-signature' }
-          }).then(() => setAttendedPromptRequest(null));
+          }).then(() => {
+            setAttendedPromptRequest(null);
+            if (decision === 'allow' && selectedDevice) {
+              api.post('/remote/sessions/launch', {
+                device_id: selectedDevice.device_id,
+                access_mode: 'attended',
+                connection_type: 'Full Control'
+              }).then(res => {
+                if (res.data.success) {
+                  setActiveModalSession(res.data.data);
+                }
+              });
+            }
+          });
         }}
         onClose={() => setAttendedPromptRequest(null)}
       />
