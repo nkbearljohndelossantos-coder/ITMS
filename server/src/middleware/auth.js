@@ -35,20 +35,21 @@ const requirePermission = (permissionCode) => {
       });
     }
 
-    // Super Admin bypasses all individual permission checks
-    if (req.user.roles && req.user.roles.includes('Super Admin')) {
+    // Super Admin, IT Manager, and Admin bypass individual permission checks
+    const userRoles = Array.isArray(req.user.roles) ? req.user.roles : (req.user.role ? [req.user.role] : []);
+    if (userRoles.some(r => ['Super Admin', 'IT Manager', 'Admin'].includes(r))) {
       return next();
     }
 
-    if (!req.user.permissions || !req.user.permissions.includes(permissionCode)) {
-      logger.warn(`User ${req.user.username} was denied permission to ${permissionCode}`);
-      return res.status(403).json({
-        success: false,
-        message: `Forbidden. You do not have the required permission (${permissionCode}) to perform this action.`
-      });
+    if (req.user.permissions && req.user.permissions.includes(permissionCode)) {
+      return next();
     }
 
-    next();
+    logger.warn(`User ${req.user.username} was denied permission to ${permissionCode}`);
+    return res.status(403).json({
+      success: false,
+      message: `Forbidden. You do not have the required permission (${permissionCode}) to perform this action.`
+    });
   };
 };
 
