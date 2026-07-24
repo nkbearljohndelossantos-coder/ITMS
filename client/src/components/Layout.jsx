@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Laptop, Ticket, Wrench, Calendar, 
   Package, Key, Users, FileBarChart, History, Settings, 
   Menu, X, Bell, LogOut, User, Lock, ChevronRight, ChevronDown,
-  Database, Shield, Network, Printer, Folder, Wifi, Globe, Server
+  Database, Shield, Network, Printer, Folder, Wifi, Globe, Server, Radio
 } from 'lucide-react';
 
 export default function Layout() {
