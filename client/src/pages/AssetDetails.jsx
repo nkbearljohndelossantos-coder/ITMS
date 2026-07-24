@@ -218,7 +218,6 @@ export default function AssetDetails() {
     if (!asset) return;
     const printWindow = window.open('', '_blank');
     const logoUrl = `${window.location.origin}/nkb-logo.png`;
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(asset.asset_code)}`;
     const modelText = getAssetModelText();
     const specsText = getAssetSpecsText();
     const locationText = asset.current_location || 'Nkb Manufacturing Sampaguita Village 2, Mambog 2, B4 L5, Twig St, Bacoor, 4102 Cavite';
@@ -241,7 +240,7 @@ export default function AssetDetails() {
               height: 40mm;
               margin: 0;
               padding: 0;
-              font-family: Arial, Helvetica, sans-serif;
+              font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
               background: #ffffff;
               color: #000000;
               -webkit-print-color-adjust: exact;
@@ -251,53 +250,67 @@ export default function AssetDetails() {
             .sticker-card {
               width: 70mm;
               height: 40mm;
-              padding: 1.5mm 2mm;
+              padding: 1.8mm 2.5mm;
               display: flex;
               flex-direction: column;
               justify-content: space-between;
-              border: 1px solid #000000;
+              border: 1.5px solid #000000;
               box-sizing: border-box;
               overflow: hidden;
               background: #ffffff;
             }
-            .top-grid {
+            .header-row {
               display: flex;
               justify-content: space-between;
-              align-items: flex-start;
-              gap: 1.5mm;
-              height: 24mm;
-              overflow: hidden;
+              align-items: center;
+              border-bottom: 1.2px solid #000000;
+              padding-bottom: 0.8mm;
+              margin-bottom: 0.8mm;
             }
-            .left-section {
+            .logo-img {
+              height: 6.5mm;
+              max-width: 36mm;
+              object-fit: contain;
+            }
+            .asset-tag-badge {
+              text-align: right;
+            }
+            .asset-tag-title {
+              font-size: 4.8pt;
+              font-weight: 800;
+              letter-spacing: 0.4px;
+              color: #333333;
+              text-transform: uppercase;
+              line-height: 1;
+            }
+            .asset-tag-code {
+              font-size: 8.5pt;
+              font-weight: 900;
+              color: #000000;
+              font-family: monospace, Arial, sans-serif;
+              line-height: 1.1;
+            }
+            .main-body {
               flex: 1;
-              min-width: 0;
               display: flex;
               flex-direction: column;
               justify-content: space-between;
-              height: 100%;
+              overflow: hidden;
             }
-            .logo-header {
-              margin-bottom: 0.5mm;
-            }
-            .logo-img {
-              height: 5.5mm;
-              max-width: 35mm;
-              object-fit: contain;
-            }
-            .field-group {
-              margin-bottom: 0.3mm;
+            .name-block {
+              margin-bottom: 0.6mm;
             }
             .field-label {
-              font-size: 5.5pt;
-              font-weight: 700;
-              font-style: italic;
-              color: #000000;
+              font-size: 5pt;
+              font-weight: 800;
+              color: #333333;
+              text-transform: uppercase;
+              letter-spacing: 0.3px;
               line-height: 1;
             }
-            .field-val-lg {
-              font-size: 7.5pt;
+            .name-val {
+              font-size: 9.5pt;
               font-weight: 900;
-              font-style: italic;
               color: #000000;
               line-height: 1.05;
               text-transform: uppercase;
@@ -305,128 +318,132 @@ export default function AssetDetails() {
               overflow: hidden;
               text-overflow: ellipsis;
             }
-            .field-val-specs {
-              font-size: 4.8pt;
+            .specs-block {
+              background: #f1f5f9;
+              border-left: 2.5px solid #000000;
+              padding: 0.8mm 1.5mm;
+              margin-bottom: 0.8mm;
+            }
+            .specs-val {
+              font-size: 5.5pt;
               font-weight: 700;
-              font-style: italic;
-              color: #111111;
-              background: #f4f4f5;
-              border-left: 1.5px solid #000000;
-              padding: 0.5mm 1mm;
-              line-height: 1.1;
+              color: #000000;
+              line-height: 1.15;
               max-height: 7mm;
               overflow: hidden;
             }
-            .right-section {
-              width: 21mm;
-              height: 21mm;
-              flex-shrink: 0;
+            .details-grid {
               display: flex;
-              justify-content: flex-end;
-              align-items: flex-start;
+              justify-content: space-between;
+              gap: 1.5mm;
+              margin-bottom: 0.6mm;
             }
-            .qr-code-img {
-              width: 20mm;
-              height: 20mm;
-              object-fit: contain;
+            .grid-col {
+              flex: 1;
+              min-width: 0;
             }
-            .divider-line {
-              border-top: 0.8px solid #000000;
-              margin: 0.4mm 0;
-            }
-            .location-container {
-              font-size: 4.8pt;
-              height: 4.2mm;
+            .grid-val {
+              font-size: 6.8pt;
+              font-weight: 900;
+              color: #000000;
+              text-transform: uppercase;
+              white-space: nowrap;
               overflow: hidden;
+              text-overflow: ellipsis;
               line-height: 1.1;
             }
-            .location-title {
-              font-weight: 900;
-              font-size: 4.5pt;
-              display: inline;
-              margin-right: 1mm;
-            }
-            .location-address {
-              font-weight: 600;
-              font-size: 4.5pt;
-              display: inline;
+            .location-row {
+              border-top: 0.8px solid #000000;
+              padding-top: 0.5mm;
+              margin-bottom: 0.5mm;
+              font-size: 5pt;
+              line-height: 1.1;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
             }
-            .footer-container {
-              border-top: 0.8px solid #000000;
+            .location-title {
+              font-weight: 900;
+              margin-right: 1mm;
+            }
+            .location-text {
+              font-weight: 600;
+              color: #111111;
+            }
+            .footer-banner {
+              border-top: 1px solid #000000;
               padding-top: 0.4mm;
               text-align: center;
-              height: 5.5mm;
-              overflow: hidden;
             }
-            .footer-headline {
-              font-size: 5.5pt;
+            .footer-main {
+              font-size: 6pt;
               font-weight: 900;
-              letter-spacing: 0.2px;
+              letter-spacing: 0.4px;
               text-transform: uppercase;
               line-height: 1;
             }
-            .footer-details {
-              font-size: 4pt;
+            .footer-sub {
+              font-size: 4.5pt;
               font-weight: 800;
-              letter-spacing: 0.1px;
+              letter-spacing: 0.2px;
               margin-top: 0.2mm;
               text-transform: uppercase;
               line-height: 1;
+              color: #222222;
             }
           </style>
         </head>
         <body>
           <div class="sticker-card">
-            <div class="top-grid">
-              <div class="left-section">
-                <div class="logo-header">
-                  <img src="${logoUrl}" alt="NKB Logo" class="logo-img" />
-                </div>
-                
-                <div class="field-group">
-                  <div class="field-label">Name :</div>
-                  <div class="field-val-lg">${asset.name || modelText}</div>
-                </div>
+            <div class="header-row">
+              <img src="${logoUrl}" alt="NKB Logo" class="logo-img" />
+              <div class="asset-tag-badge">
+                <div class="asset-tag-title">PROPERTY ASSET TAG</div>
+                <div class="asset-tag-code">${asset.asset_code}</div>
+              </div>
+            </div>
 
-                ${(modelText || specsText) ? `
-                <div class="field-group">
-                  <div class="field-label">Model & Specs :</div>
-                  <div class="field-val-specs">
-                    ${modelText ? `<div>Model: ${modelText}</div>` : ''}
-                    ${specsText ? `<div>Specs: ${specsText}</div>` : ''}
-                  </div>
-                </div>
-                ` : ''}
+            <div class="main-body">
+              <div class="name-block">
+                <div class="field-label">Asset Name :</div>
+                <div class="name-val">${asset.name || modelText}</div>
+              </div>
 
-                <div class="field-group">
-                  <div class="field-label">Cat :</div>
-                  <div class="field-val-lg">${(asset.category_name || 'EQUIPMENT').toUpperCase()}</div>
+              ${(modelText || specsText) ? `
+              <div class="specs-block">
+                <div class="field-label" style="font-size: 4.5pt; margin-bottom: 0.2mm;">Model & Specs :</div>
+                <div class="specs-val">
+                  ${modelText ? `<strong>Model:</strong> ${modelText}` : ''}
+                  ${(modelText && specsText) ? ' | ' : ''}
+                  ${specsText ? `<strong>Specs:</strong> ${specsText}` : ''}
                 </div>
+              </div>
+              ` : ''}
 
-                <div class="field-group">
+              <div class="details-grid">
+                <div class="grid-col">
+                  <div class="field-label">Category</div>
+                  <div class="grid-val">${(asset.category_name || 'EQUIPMENT').toUpperCase()}</div>
+                </div>
+                <div class="grid-col">
                   <div class="field-label">Serial Number</div>
-                  <div class="field-val-lg">${asset.serial_number || 'N/A'}</div>
+                  <div class="grid-val">${asset.serial_number || 'N/A'}</div>
+                </div>
+                <div class="grid-col">
+                  <div class="field-label">Condition</div>
+                  <div class="grid-val">${(asset.condition || 'GOOD').toUpperCase()}</div>
                 </div>
               </div>
 
-              <div class="right-section">
-                <img src="${qrCodeUrl}" alt="QR Code" class="qr-code-img" />
+              <div class="location-row">
+                <span class="location-title">LOCATION:</span>
+                <span class="location-text">${locationText}</span>
               </div>
             </div>
 
-            <div class="divider-line"></div>
-
-            <div class="location-container">
-              <span class="location-title">LOCATION:</span>
-              <span class="location-address">${locationText}</span>
-            </div>
-
-            <div class="footer-container">
-              <div class="footer-headline">PROPERTY OF NKB MANUFACTURING</div>
-              <div class="footer-details">DO NOT REMOVE &nbsp;|&nbsp; SCAN FOR DETAILS &nbsp;|&nbsp; ID: ${asset.asset_code}</div>
+            <div class="footer-banner">
+              <div class="footer-main">PROPERTY OF NKB MANUFACTURING CORP.</div>
+              <div class="footer-sub">DO NOT REMOVE OR DEFACE &nbsp;|&nbsp; IT MANAGEMENT SYSTEM</div>
             </div>
           </div>
 
@@ -992,7 +1009,7 @@ export default function AssetDetails() {
             <div className="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <Printer className="h-5 w-5 text-gold-500" />
-                <h3 className="font-bold text-sm">Asset Sticker Preview (70mm x 40mm)</h3>
+                <h3 className="font-bold text-sm">Professional Asset Tag Preview (70mm x 40mm)</h3>
               </div>
               <button onClick={() => setStickerModalOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
                 <X className="h-5 w-5" />
@@ -1001,72 +1018,75 @@ export default function AssetDetails() {
             
             <div className="p-6 space-y-4 bg-slate-100 flex flex-col items-center select-none">
               
-              <div className="text-xs text-slate-500 font-medium flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 px-3 py-1.5 rounded-lg">
-                <span>🏷️ Standard Thermal Sticker Size: <strong>70mm x 40mm</strong> (Fits exactly 1 Sheet)</span>
+              <div className="text-xs font-medium flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-1.5 rounded-lg">
+                <span>✨ Professional Layout (No QR Code): <strong>70mm x 40mm</strong> (High Visibility Details)</span>
               </div>
 
               {/* Exact 70mm x 40mm Scaled Container Preview */}
-              <div className="bg-white border-2 border-black p-3 rounded-sm shadow-md w-[420px] h-[240px] text-black font-sans flex flex-col justify-between overflow-hidden">
+              <div className="bg-white border-2 border-black p-3.5 rounded-sm shadow-lg w-[420px] h-[240px] text-black font-sans flex flex-col justify-between overflow-hidden">
                 
-                <div className="flex justify-between items-start gap-2 h-[150px] overflow-hidden">
+                {/* Top Header */}
+                <div className="flex justify-between items-center border-b border-black pb-1.5 mb-1.5">
+                  <img src="/nkb-logo.png" alt="NKB Logo" className="h-7 object-contain" />
+                  <div className="text-right">
+                    <span className="block text-[8px] font-extrabold text-slate-700 tracking-wider uppercase leading-none">PROPERTY ASSET TAG</span>
+                    <span className="block text-sm font-black font-mono leading-tight">{asset.asset_code}</span>
+                  </div>
+                </div>
+
+                <div className="flex-1 flex flex-col justify-between overflow-hidden space-y-1">
                   
-                  {/* Left Column */}
-                  <div className="flex-1 min-w-0 flex flex-col justify-between h-full space-y-1">
-                    <div className="flex items-center gap-1">
-                      <img src="/nkb-logo.png" alt="NKB Logo" className="h-7 object-contain" />
-                    </div>
+                  {/* Name */}
+                  <div>
+                    <span className="block text-[8.5px] font-extrabold text-slate-700 uppercase tracking-tight leading-none mb-0.5">Asset Name :</span>
+                    <span className="block text-[13px] font-black uppercase text-black leading-tight truncate">{asset.name}</span>
+                  </div>
 
+                  {/* Model & Specs Box */}
+                  {(getAssetModelText() || getAssetSpecsText()) && (
+                    <div className="bg-slate-100 border-l-3 border-black p-1.5 text-[9px] font-semibold leading-tight max-h-[50px] overflow-hidden rounded-r-xs">
+                      <span className="block text-[7.5px] font-extrabold text-slate-600 uppercase mb-0.5">Model & Hardware Specs :</span>
+                      <div className="text-slate-900 font-bold line-clamp-2">
+                        {getAssetModelText() && <span>Model: {getAssetModelText()}</span>}
+                        {getAssetModelText() && getAssetSpecsText() && <span> | </span>}
+                        {getAssetSpecsText() && <span>Specs: {getAssetSpecsText()}</span>}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 3-Column Grid */}
+                  <div className="grid grid-cols-3 gap-2 text-[9px] font-black pt-0.5">
                     <div>
-                      <span className="block text-[8px] font-bold italic leading-none">Name :</span>
-                      <span className="block text-[11px] font-black italic uppercase leading-tight truncate">{asset.name}</span>
+                      <span className="text-[7.5px] font-extrabold text-slate-600 uppercase block leading-none">Category</span>
+                      <span className="uppercase truncate block text-slate-950 mt-0.5">{asset.category_name || 'EQUIPMENT'}</span>
                     </div>
-
-                    {(getAssetModelText() || getAssetSpecsText()) && (
-                      <div className="bg-slate-50 border-l-2 border-black p-1 text-[8px] font-bold italic leading-tight max-h-[45px] overflow-hidden">
-                        {getAssetModelText() && <div className="truncate">Model: {getAssetModelText()}</div>}
-                        {getAssetSpecsText() && <div className="text-slate-700 line-clamp-2">Specs: {getAssetSpecsText()}</div>}
-                      </div>
-                    )}
-
-                    <div className="flex justify-between items-center text-[9px] font-black italic">
-                      <div>
-                        <span className="text-[7.5px] font-bold block">Cat :</span>
-                        <span className="uppercase truncate">{asset.category_name || 'EQUIPMENT'}</span>
-                      </div>
-                      <div>
-                        <span className="text-[7.5px] font-bold block">S/N:</span>
-                        <span className="uppercase truncate">{asset.serial_number || 'N/A'}</span>
-                      </div>
+                    <div>
+                      <span className="text-[7.5px] font-extrabold text-slate-600 uppercase block leading-none">Serial Number</span>
+                      <span className="uppercase truncate block text-slate-950 mt-0.5">{asset.serial_number || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[7.5px] font-extrabold text-slate-600 uppercase block leading-none">Condition</span>
+                      <span className="uppercase truncate block text-slate-950 mt-0.5">{asset.condition || 'GOOD'}</span>
                     </div>
                   </div>
 
-                  {/* Right Column QR Code */}
-                  <div className="w-[130px] h-[130px] flex-shrink-0 text-right flex justify-end items-start">
-                    <img 
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(asset.asset_code)}`} 
-                      alt="QR Code" 
-                      className="w-[125px] h-[125px] object-contain border p-0.5"
-                    />
+                  {/* Location */}
+                  <div className="border-t border-black/80 pt-1 text-[8.5px] leading-tight truncate">
+                    <span className="font-black mr-1 uppercase">LOCATION:</span>
+                    <span className="font-semibold text-slate-800">
+                      {asset.current_location || 'Nkb Manufacturing Sampaguita Village 2, Mambog 2, B4 L5, Twig St, Bacoor, 4102 Cavite'}
+                    </span>
                   </div>
-
                 </div>
 
-                <div className="border-t border-black my-1" />
-
-                {/* Location */}
-                <div className="text-[8px] leading-tight truncate">
-                  <span className="font-extrabold mr-1">LOCATION:</span>
-                  <span className="font-semibold text-slate-800">
-                    {asset.current_location || 'Nkb Manufacturing Sampaguita Village 2, Mambog 2, B4 L5, Twig St, Bacoor, 4102 Cavite'}
-                  </span>
-                </div>
-
-                <div className="border-t border-black pt-1 text-center">
-                  <h5 className="font-black text-[9px] uppercase tracking-wide leading-none">PROPERTY OF NKB MANUFACTURING</h5>
-                  <p className="font-bold text-[7px] uppercase text-slate-700 leading-none mt-0.5">
-                    DO NOT REMOVE &nbsp;|&nbsp; SCAN FOR DETAILS &nbsp;|&nbsp; ID: {asset.asset_code}
+                {/* Footer Banner */}
+                <div className="border-t border-black pt-1 mt-1 text-center">
+                  <h5 className="font-black text-[9.5px] uppercase tracking-wider leading-none">PROPERTY OF NKB MANUFACTURING CORP.</h5>
+                  <p className="font-bold text-[7.5px] uppercase text-slate-700 leading-none mt-0.5">
+                    DO NOT REMOVE OR DEFACE &nbsp;|&nbsp; IT MANAGEMENT SYSTEM
                   </p>
                 </div>
+
               </div>
             </div>
 
