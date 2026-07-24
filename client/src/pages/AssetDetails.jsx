@@ -190,31 +190,220 @@ export default function AssetDetails() {
     }
   };
 
+  const getAssetModelText = () => {
+    if (!asset) return '';
+    return [asset.brand, asset.model].filter(Boolean).join(' ');
+  };
+
+  const getAssetSpecsText = () => {
+    if (!asset) return '';
+    const specs = [
+      asset.specs_cpu && `CPU: ${asset.specs_cpu}`,
+      asset.specs_ram && `RAM: ${asset.specs_ram}`,
+      asset.specs_storage && `Storage: ${asset.specs_storage}`,
+      (asset.specs_os || asset.specs_win_edition) && `OS: ${asset.specs_os || ''} ${asset.specs_win_edition || ''}`.trim()
+    ].filter(Boolean);
+
+    if (specs.length > 0) {
+      return specs.join(' | ');
+    }
+    return asset.description || asset.remarks || '';
+  };
+
   const handlePrintSticker = () => {
+    if (!asset) return;
     const printWindow = window.open('', '_blank');
+    const logoUrl = `${window.location.origin}/nkb-logo.png`;
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(asset.asset_code)}`;
+    const modelText = getAssetModelText();
+    const specsText = getAssetSpecsText();
+    const locationText = asset.current_location || 'Nkb Manufacturing Sampaguita Village 2, Mambog 2, B4 L5, Twig St, Bacoor, 4102 Cavite';
+
     printWindow.document.write(`
+      <!DOCTYPE html>
       <html>
         <head>
           <title>Asset Sticker - ${asset.asset_code}</title>
           <style>
-            body { font-family: monospace; padding: 20px; text-align: center; color: black; }
-            .sticker { border: 2px dashed black; padding: 15px; display: inline-block; width: 250px; }
-            .title { font-weight: bold; font-size: 14px; margin-bottom: 5px; }
-            .barcode { font-size: 11px; margin: 10px 0; background: #eee; padding: 5px; }
-            .code { font-weight: bold; font-size: 16px; margin: 5px 0; }
-            .serial { font-size: 10px; margin-top: 5px; }
+            @page {
+              size: auto;
+              margin: 0mm;
+            }
+            body {
+              font-family: Arial, Helvetica, sans-serif;
+              margin: 0;
+              padding: 15px;
+              background: #ffffff;
+              color: #000000;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            .sticker-card {
+              width: 560px;
+              border: 2px solid #000000;
+              padding: 14px;
+              box-sizing: border-box;
+              background: #ffffff;
+              margin: 0 auto;
+            }
+            .top-grid {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              gap: 15px;
+            }
+            .left-section {
+              flex: 1;
+              min-width: 0;
+            }
+            .logo-header {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              margin-bottom: 10px;
+            }
+            .logo-img {
+              height: 46px;
+              max-width: 190px;
+              object-fit: contain;
+            }
+            .field-label {
+              font-size: 11px;
+              font-weight: 700;
+              font-style: italic;
+              color: #000000;
+              margin-bottom: 2px;
+            }
+            .field-val-lg {
+              font-size: 17px;
+              font-weight: 900;
+              font-style: italic;
+              color: #000000;
+              line-height: 1.15;
+              text-transform: uppercase;
+              margin-bottom: 6px;
+              word-break: break-word;
+            }
+            .field-val-specs {
+              font-size: 10px;
+              font-weight: 700;
+              font-style: italic;
+              color: #222222;
+              background: #f4f4f5;
+              border-left: 3px solid #000000;
+              padding: 4px 6px;
+              margin-bottom: 6px;
+              line-height: 1.35;
+            }
+            .right-section {
+              width: 150px;
+              flex-shrink: 0;
+              text-align: right;
+            }
+            .qr-code-img {
+              width: 145px;
+              height: 145px;
+              object-fit: contain;
+            }
+            .divider-line {
+              border-top: 1.5px solid #000000;
+              margin: 8px 0;
+            }
+            .location-container {
+              font-size: 10px;
+              margin-bottom: 8px;
+            }
+            .location-title {
+              font-weight: 800;
+              font-size: 9px;
+              letter-spacing: 0.5px;
+              display: block;
+              margin-bottom: 2px;
+            }
+            .location-address {
+              font-weight: 600;
+              font-size: 9.5px;
+              line-height: 1.25;
+            }
+            .footer-container {
+              border-top: 1.5px solid #000000;
+              padding-top: 6px;
+              text-align: center;
+            }
+            .footer-headline {
+              font-size: 11px;
+              font-weight: 900;
+              letter-spacing: 0.8px;
+              text-transform: uppercase;
+            }
+            .footer-details {
+              font-size: 8.5px;
+              font-weight: 800;
+              letter-spacing: 0.4px;
+              margin-top: 3px;
+              text-transform: uppercase;
+            }
           </style>
         </head>
         <body>
-          <div class="sticker">
-            <div class="title">NKB TECHNOLOGIES</div>
-            <div class="code">${asset.asset_code}</div>
-            <div class="barcode">*${asset.barcode}*</div>
-            <div class="title">${asset.name}</div>
-            <div class="serial">S/N: ${asset.serial_number}</div>
+          <div class="sticker-card">
+            <div class="top-grid">
+              <div class="left-section">
+                <div class="logo-header">
+                  <img src="${logoUrl}" alt="NKB Logo" class="logo-img" />
+                </div>
+                
+                <div>
+                  <div class="field-label">Name :</div>
+                  <div class="field-val-lg">${asset.name || modelText}</div>
+                </div>
+
+                ${(modelText || specsText) ? `
+                <div>
+                  <div class="field-label">Model & Specs :</div>
+                  <div class="field-val-specs">
+                    ${modelText ? `<div><strong>Model:</strong> ${modelText}</div>` : ''}
+                    ${specsText ? `<div><strong>Specs:</strong> ${specsText}</div>` : ''}
+                  </div>
+                </div>
+                ` : ''}
+
+                <div>
+                  <div class="field-label">Cat :</div>
+                  <div class="field-val-lg">${(asset.category_name || 'EQUIPMENT').toUpperCase()}</div>
+                </div>
+
+                <div>
+                  <div class="field-label">Serial Number</div>
+                  <div class="field-val-lg">${asset.serial_number || 'N/A'}</div>
+                </div>
+              </div>
+
+              <div class="right-section">
+                <img src="${qrCodeUrl}" alt="QR Code" class="qr-code-img" />
+              </div>
+            </div>
+
+            <div class="divider-line"></div>
+
+            <div class="location-container">
+              <span class="location-title">LOCATION:</span>
+              <span class="location-address">${locationText}</span>
+            </div>
+
+            <div class="footer-container">
+              <div class="footer-headline">PROPERTY OF NKB MANUFACTURING</div>
+              <div class="footer-details">DO NOT REMOVE &nbsp;|&nbsp; SCAN FOR DETAILS &nbsp;|&nbsp; ID: ${asset.asset_code}</div>
+            </div>
           </div>
+
           <script>
-            window.onload = function() { window.print(); window.close(); }
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+                window.close();
+              }, 400);
+            };
           </script>
         </body>
       </html>
@@ -257,7 +446,7 @@ export default function AssetDetails() {
             </button>
           )}
           <button 
-            onClick={handlePrintSticker}
+            onClick={() => setStickerModalOpen(true)}
             className="px-3 py-1.5 border border-slate-350 text-slate-700 bg-white hover:bg-slate-50 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
           >
             <Printer className="h-3.5 w-3.5" />
@@ -743,6 +932,107 @@ export default function AssetDetails() {
                 <button type="submit" className="px-4 py-2 bg-slate-900 text-white font-bold rounded hover:bg-gold-650 cursor-pointer">Start Upload</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==========================================
+          MODAL 5: PRINT STICKER PREVIEW
+          ========================================== */}
+      {stickerModalOpen && (
+        <div className="fixed inset-0 z-55 flex items-center justify-center bg-black/60 p-4 animate-fade-in" onClick={() => setStickerModalOpen(false)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Printer className="h-5 w-5 text-gold-500" />
+                <h3 className="font-bold text-sm">Asset Sticker Print Preview</h3>
+              </div>
+              <button onClick={() => setStickerModalOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6 bg-slate-100 flex flex-col items-center select-none">
+              {/* Sticker Card Preview matching exact image sample */}
+              <div className="bg-white border-2 border-black p-4 rounded-sm shadow-md w-full max-w-[560px] text-black font-sans">
+                <div className="flex justify-between items-start gap-4">
+                  
+                  {/* Left Column */}
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      <img src="/nkb-logo.png" alt="NKB Logo" className="h-12 object-contain" />
+                    </div>
+
+                    <div>
+                      <span className="block text-[11px] font-bold italic">Name :</span>
+                      <span className="block text-base font-black italic uppercase leading-tight">{asset.name}</span>
+                    </div>
+
+                    {(getAssetModelText() || getAssetSpecsText()) && (
+                      <div className="bg-slate-50 border-l-2 border-black p-1.5 text-[10px] font-bold italic leading-tight space-y-0.5">
+                        {getAssetModelText() && <div>Model: {getAssetModelText()}</div>}
+                        {getAssetSpecsText() && <div className="text-slate-700">Specs: {getAssetSpecsText()}</div>}
+                      </div>
+                    )}
+
+                    <div>
+                      <span className="block text-[11px] font-bold italic">Cat :</span>
+                      <span className="block text-base font-black italic uppercase leading-tight">{asset.category_name || 'EQUIPMENT'}</span>
+                    </div>
+
+                    <div>
+                      <span className="block text-[11px] font-bold italic">Serial Number</span>
+                      <span className="block text-base font-black italic uppercase leading-tight">{asset.serial_number || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  {/* Right Column QR Code */}
+                  <div className="w-36 flex-shrink-0 text-right">
+                    <img 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(asset.asset_code)}`} 
+                      alt="QR Code" 
+                      className="w-36 h-36 object-contain ml-auto border p-1"
+                    />
+                  </div>
+
+                </div>
+
+                <div className="border-t border-black my-2.5" />
+
+                {/* Location */}
+                <div className="text-[10px] space-y-0.5">
+                  <span className="font-extrabold block text-[9px]">LOCATION:</span>
+                  <p className="font-semibold text-slate-800 leading-tight">
+                    {asset.current_location || 'Nkb Manufacturing Sampaguita Village 2, Mambog 2, B4 L5, Twig St, Bacoor, 4102 Cavite'}
+                  </p>
+                </div>
+
+                <div className="border-t border-black pt-1.5 mt-2 text-center">
+                  <h5 className="font-black text-xs uppercase tracking-wider">PROPERTY OF NKB MANUFACTURING</h5>
+                  <p className="font-bold text-[8.5px] uppercase text-slate-700 mt-0.5">
+                    DO NOT REMOVE &nbsp;|&nbsp; SCAN FOR DETAILS &nbsp;|&nbsp; ID: {asset.asset_code}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-white border-t flex justify-end gap-3">
+              <button 
+                type="button" 
+                onClick={() => setStickerModalOpen(false)} 
+                className="px-4 py-2 border border-slate-350 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-50 cursor-pointer"
+              >
+                Close
+              </button>
+              <button 
+                type="button" 
+                onClick={handlePrintSticker} 
+                className="px-5 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-gold-650 flex items-center gap-1.5 cursor-pointer shadow transition-colors"
+              >
+                <Printer className="h-4 w-4" />
+                <span>Print Sticker Now</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
