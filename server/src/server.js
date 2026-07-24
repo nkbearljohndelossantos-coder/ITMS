@@ -61,6 +61,10 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // 5. Static folders serving
+// Handle favicon requests gracefully to avoid 403 browser console warnings
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+app.get('/api/favicon.ico', (req, res) => res.status(204).end());
+
 // Serve uploads folder
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')));
