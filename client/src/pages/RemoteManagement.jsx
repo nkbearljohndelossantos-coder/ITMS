@@ -730,6 +730,85 @@ export default function RemoteManagement() {
         </div>
       )}
 
+      {/* TAB: AGENT DEPLOYMENT */}
+      {activeTab === 'deployment' && (
+        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
+          <div className="flex justify-between items-center border-b pb-4">
+            <div>
+              <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                <Download className="h-5 w-5 text-gold-600" />
+                <span>Endpoint Agent Deployment Center</span>
+              </h3>
+              <p className="text-xs text-slate-500">Download Windows Agent package, copy silent PowerShell installation script, or view AD GPO deployment guide.</p>
+            </div>
+            <a
+              href="https://meshcentral.com/downloads.html"
+              target="_blank"
+              rel="noreferrer"
+              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-lg text-xs flex items-center gap-1 cursor-pointer border border-slate-350"
+            >
+              <span>MeshCentral Website</span>
+            </a>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Box 1: Windows Agent Package Download */}
+            <div className="p-5 bg-slate-900 text-white rounded-xl border border-slate-800 space-y-4 flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-gold-400" />
+                  <h4 className="font-bold text-sm text-white">1. Windows Agent Package (.exe)</h4>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Download the NKB ITMS Windows Agent executable. Run this installer as Administrator on the target employee laptop or workstation to enable live remote support.
+                </p>
+                <div className="p-3 bg-slate-800/80 rounded-lg border border-slate-700 text-xs font-mono space-y-1">
+                  <div className="text-slate-400 text-[10px]">Enrollment Token Hash:</div>
+                  <div className="text-emerald-400 font-bold text-[11px] truncate">
+                    {agentPackage?.tokenHash || 'ENROLL-TOKEN-SHA256-ACTIVE-HASH'}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  window.open('https://meshcentral.com/downloads.html', '_blank');
+                }}
+                className="w-full py-3 bg-gold-600 hover:bg-gold-650 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-2 transition-colors shadow cursor-pointer uppercase tracking-wider"
+              >
+                <Download className="h-4 w-4" />
+                <span>Download Windows Agent (.exe)</span>
+              </button>
+            </div>
+
+            {/* Box 2: Silent PowerShell Script */}
+            <div className="p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+              <div className="flex items-center gap-2">
+                <TerminalIcon className="h-5 w-5 text-slate-800" />
+                <h4 className="font-bold text-sm text-slate-900">2. PowerShell Silent Installation Command</h4>
+              </div>
+              <p className="text-xs text-slate-600">
+                Run this silent command via PowerShell (Run as Administrator) to install the Windows Agent background service without user prompts:
+              </p>
+              <pre className="p-3 bg-slate-900 text-emerald-400 font-mono text-[11px] rounded-lg overflow-x-auto border border-slate-800 whitespace-pre-wrap">
+                {agentPackage?.script || `$InstallDir = "$env:ProgramFiles\\NKB-ITMS-Agent"\nNew-Item -ItemType Directory -Force -Path $InstallDir\nStart-Process -FilePath "MeshAgent.exe" -ArgumentList "-fullinstall" -Wait\nStart-Service -Name "MeshAgent"`}
+              </pre>
+            </div>
+          </div>
+
+          {/* Box 3: Active Directory GPO Guide */}
+          <div className="p-5 bg-indigo-50/60 border border-indigo-200 rounded-xl space-y-3">
+            <div className="flex items-center gap-2 text-indigo-950 font-bold text-sm">
+              <FileText className="h-5 w-5 text-indigo-600" />
+              <span>3. Active Directory GPO Mass Deployment Guide</span>
+            </div>
+            <pre className="p-4 bg-white border border-indigo-150 rounded-lg text-slate-800 font-mono text-xs overflow-x-auto whitespace-pre-wrap leading-relaxed">
+              {agentPackage?.gpoGuide || `===================================================================\nNKB ITMS - ACTIVE DIRECTORY GPO AGENT DEPLOYMENT GUIDE\n===================================================================\n1. Copy the PowerShell script to your SYSVOL share:\n   \\\\yourdomain.com\\SYSVOL\\yourdomain.com\\scripts\\Deploy-NKBAgent.ps1\n2. Open Group Policy Management Console (gpmc.msc).\n3. Create GPO: "NKB ITMS Agent Deployment GPO".\n4. Edit -> Computer Configuration -> Policies -> Windows Settings -> Scripts -> Startup.\n5. Add PowerShell script: Deploy-NKBAgent.ps1`}
+            </pre>
+          </div>
+        </div>
+      )}
+
       {/* TAB 9: AUDIT LOGS WITH HASH-CHAIN VERIFICATION */}
       {activeTab === 'audit' && (
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
