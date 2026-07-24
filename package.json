@@ -8,11 +8,10 @@
     "dev:server": "npm run dev --prefix server",
     "dev:client": "npm run dev --prefix client",
     "dev": "npx concurrently \"npm run dev:client\" \"npm run dev:server\"",
-    "build": "npm install --prefix client && npm install --prefix server && npm run migrate --prefix server && npm run seed --prefix server && npm run build --prefix client",
+    "build": "npm install --prefix client && npm install --prefix server && npm run migrate --prefix server && npm run build --prefix client",
     "start": "npm run start --prefix server",
     "migrate": "npm run migrate --prefix server",
     "seed": "npm run seed --prefix server",
-    "seed:demo": "npm run seed:demo --prefix server",
     "test": "npm run test --prefix server"
   },
   "devDependencies": {
