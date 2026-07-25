@@ -45,11 +45,14 @@ class BackupDeviceService {
       // 1. Validate Token atomically
       const tokenRec = await trx('backup_enrollment_tokens')
         .where({ token: enrollmentToken, is_revoked: false })
-        .where('expires_at', '>', new Date())
         .first();
 
       if (!tokenRec) {
         throw new Error('ENROLLMENT_TOKEN_INVALID_OR_EXPIRED');
+      }
+
+      if (new Date(tokenRec.expires_at) <= new Date()) {
+        throw new Error('ENROLLMENT_TOKEN_EXPIRED');
       }
 
       if (tokenRec.uses_count >= tokenRec.max_uses) {
