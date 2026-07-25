@@ -102,6 +102,8 @@ export default function RemoteManagement() {
       loadAuditLogs();
     } else if (activeTab === 'deployment') {
       loadAgentDeployment();
+    } else if (activeTab === 'settings') {
+      loadGatewaySettings();
     }
   }, [selectedDevice, activeTab]);
 
