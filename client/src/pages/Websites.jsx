@@ -69,6 +69,18 @@ export default function Websites() {
     loadData();
   }, [page, search, statusFilter]);
 
+  const isNeverExpiry = (dateStr) => {
+    if (!dateStr) return false;
+    const s = String(dateStr).trim();
+    return (
+      s === 'Never' ||
+      s.startsWith('1899') ||
+      s.startsWith('1970') ||
+      s.startsWith('0000') ||
+      s.startsWith('9999')
+    );
+  };
+
   const openAddModal = () => {
     setEditingSite(null);
     setNoDomainExpiry(false);
@@ -88,8 +100,8 @@ export default function Websites() {
   const openEditModal = (site, e) => {
     if (e) e.stopPropagation();
     setEditingSite(site);
-    const isNoDomain = site.domain_expiration_date === 'Never' || site.domain_expiration_date === '9999-12-31';
-    const isNoSsl = site.ssl_expiration_date === 'Never' || site.ssl_expiration_date === '9999-12-31';
+    const isNoDomain = isNeverExpiry(site.domain_expiration_date);
+    const isNoSsl = isNeverExpiry(site.ssl_expiration_date);
 
     setNoDomainExpiry(isNoDomain);
     setNoSslExpiry(isNoSsl);
@@ -186,7 +198,7 @@ export default function Websites() {
   const totalSites = websites.length;
   const activeSites = websites.filter(s => s.status === 'Active').length;
   const downSites = websites.filter(s => s.status === 'Down').length;
-  const sslWarnings = websites.filter(s => s.ssl_expiration_date && new Date(s.ssl_expiration_date) < new Date(Date.now() + 30 * 86400000)).length;
+  const sslWarnings = websites.filter(s => s.ssl_expiration_date && !isNeverExpiry(s.ssl_expiration_date) && new Date(s.ssl_expiration_date) < new Date(Date.now() + 30 * 86400000)).length;
 
   return (
     <div className="space-y-6">
@@ -359,8 +371,8 @@ export default function Websites() {
                   <div>
                     <span className="text-[10px] font-bold uppercase text-slate-400">Domain Expiry:</span>
                     <p className="font-semibold text-slate-700">
-                      {site.domain_expiration_date === 'Never' || site.domain_expiration_date === '9999-12-31' ? (
-                        <span className="text-emerald-700 font-bold">Never (Lifetime)</span>
+                      {isNeverExpiry(site.domain_expiration_date) ? (
+                        <span className="text-emerald-700 font-bold">Never</span>
                       ) : site.domain_expiration_date ? (
                         site.domain_expiration_date.split('T')[0]
                       ) : (
@@ -371,8 +383,8 @@ export default function Websites() {
                   <div>
                     <span className="text-[10px] font-bold uppercase text-slate-400">SSL Expiry:</span>
                     <p className="font-semibold text-slate-700">
-                      {site.ssl_expiration_date === 'Never' || site.ssl_expiration_date === '9999-12-31' ? (
-                        <span className="text-emerald-700 font-bold">Never (Lifetime)</span>
+                      {isNeverExpiry(site.ssl_expiration_date) ? (
+                        <span className="text-emerald-700 font-bold">Never</span>
                       ) : site.ssl_expiration_date ? (
                         site.ssl_expiration_date.split('T')[0]
                       ) : (
