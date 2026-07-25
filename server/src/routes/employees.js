@@ -546,4 +546,135 @@ router.post('/import', authenticateToken, requirePermission('users.create'), upl
   }
 });
 
+// Sync employees from Canteen Integration API
+router.post('/sync-canteen', authenticateToken, requirePermission('users.create'), async (req, res) => {
+  const apiUrl = process.env.CANTEEN_API_URL || 'https://canteen.nkbmanufacturing.com/api/integration/employees';
+  const apiKey = process.env.CANTEEN_API_KEY || 'NkbCanteenIntegrationSecretApiKey2026';
+  const fullUrl = `${apiUrl}?api_key=${apiKey}`;
+
+  try {
+    logger.info(`Fetching employee master records from Canteen API: ${apiUrl}`);
+    const apiRes = await fetch(fullUrl);
+    if (!apiRes.ok) {
+      return res.status(apiRes.status).json({ success: false, message: `Canteen API returned HTTP ${apiRes.status}` });
+    }
+
+    const canteenEmployees = await apiRes.json();
+    if (!Array.isArray(canteenEmployees)) {
+      return res.status(400).json({ success: false, message: 'Invalid response format from Canteen API.' });
+    }
+
+    let addedCount = 0;
+    let updatedCount = 0;
+
+    function parseFullName(rawName) {
+      if (!rawName) return { first_name: 'N/A', middle_name: '', last_name: 'N/A' };
+      const str = rawName.trim();
+      if (str.includes(',')) {
+        const [lastPart, firstPart] = str.split(',').map(s => s.trim());
+        const tokens = (firstPart || '').split(/\s+/);
+        if (tokens.length > 1 && tokens[tokens.length - 1].length <= 2) {
+          const middle = tokens.pop();
+          return { first_name: tokens.join(' '), middle_name: middle, last_name: lastPart };
+        }
+        return { first_name: firstPart || lastPart, middle_name: '', last_name: lastPart };
+      } else {
+        const tokens = str.split(/\s+/);
+        if (tokens.length === 1) return { first_name: tokens[0], middle_name: '', last_name: 'N/A' };
+        const last = tokens.pop();
+        return { first_name: tokens.join(' '), middle_name: '', last_name: last };
+      }
+    }
+
+    await db.transaction(async (trx) => {
+      // Find or create default position ("Staff")
+      let defaultPos = await trx('positions').where('name', 'Staff').first();
+      if (!defaultPos) {
+        const [posId] = await trx('positions').insert({
+          name: 'Staff',
+          description: 'Default staff position',
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+        defaultPos = { id: posId };
+      }
+
+      for (const item of canteenEmployees) {
+        const empNumber = (item.employee_id || item.barcode_number || `EMP-${item.id}`).trim();
+        const { first_name, middle_name, last_name } = parseFullName(item.name);
+        const deptName = (item.department || 'General').trim() || 'General';
+        const empStatus = item.status === 'active' || item.status === 'Active' ? 'active' : 'inactive';
+
+        // Check/create department
+        let dept = await trx('departments').where('name', deptName).first();
+        if (!dept) {
+          const deptCode = deptName.substring(0, 8).toUpperCase().replace(/[^A-Z0-9]/g, '') || 'DEPT';
+          const existingCode = await trx('departments').where('code', deptCode).first();
+          const finalCode = existingCode ? `${deptCode}_${Date.now().toString().slice(-3)}` : deptCode;
+
+          const [deptId] = await trx('departments').insert({
+            code: finalCode,
+            name: deptName,
+            location: 'Main Building',
+            status: 'active',
+            created_at: new Date(),
+            updated_at: new Date()
+          });
+          dept = { id: deptId };
+        }
+
+        const existingEmp = await trx('employees').where('employee_number', empNumber).first();
+        if (existingEmp) {
+          // Update details
+          await trx('employees').where('id', existingEmp.id).update({
+            first_name,
+            middle_name: middle_name || existingEmp.middle_name,
+            last_name,
+            department_id: dept.id,
+            status: empStatus,
+            updated_at: new Date()
+          });
+          updatedCount++;
+        } else {
+          // Insert new
+          const generatedEmail = `${empNumber.toLowerCase().replace(/[^a-z0-9]/g, '')}@nkbmanufacturing.com`;
+          await trx('employees').insert({
+            employee_number: empNumber,
+            first_name,
+            middle_name: middle_name || null,
+            last_name,
+            email: generatedEmail,
+            phone: 'N/A',
+            position_id: defaultPos.id,
+            department_id: dept.id,
+            employment_status: 'Regular',
+            date_hired: item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+            status: empStatus,
+            created_at: new Date(),
+            updated_at: new Date()
+          });
+          addedCount++;
+        }
+      }
+    });
+
+    await logAudit(req, {
+      action: 'Sync Canteen API Employees',
+      module: 'Employees',
+      notes: `Synced total: ${canteenEmployees.length}. Added: ${addedCount}, Updated: ${updatedCount}`
+    });
+
+    return res.json({
+      success: true,
+      message: `Canteen API sync completed. Added: ${addedCount}, Updated: ${updatedCount} employees.`,
+      data: { added: addedCount, updated: updatedCount, total: canteenEmployees.length }
+    });
+
+  } catch (err) {
+    logger.error(`Canteen API sync error: ${err.message}`);
+    return res.status(500).json({ success: false, message: `Failed to sync Canteen employees: ${err.message}` });
+  }
+});
+
 module.exports = router;
+

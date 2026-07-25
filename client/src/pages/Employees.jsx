@@ -3,7 +3,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { 
   Plus, Edit, Trash2, ArrowUpDown, Search, Filter, 
-  Download, Upload, Check, AlertCircle, X, Info, FileSpreadsheet
+  Download, Upload, Check, AlertCircle, X, Info, FileSpreadsheet, RefreshCw
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -44,6 +44,7 @@ export default function Employees() {
   const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [importResults, setImportResults] = useState(null);
+  const [syncingCanteen, setSyncingCanteen] = useState(false);
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(employeeSchema)
@@ -83,6 +84,23 @@ export default function Employees() {
   useEffect(() => {
     loadData();
   }, [page, search, deptFilter, statusFilter]);
+
+  const handleSyncCanteen = async () => {
+    setSyncingCanteen(true);
+    showToast('Syncing', 'Fetching employees from Canteen Integration API...', 'info');
+    try {
+      const res = await api.post('/employees/sync-canteen');
+      if (res.data.success) {
+        showToast('Sync Complete', res.data.message, 'success');
+        loadData();
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to sync with Canteen System API.';
+      showToast('Sync Error', msg, 'error');
+    } finally {
+      setSyncingCanteen(false);
+    }
+  };
 
   const openAddModal = () => {
     setEditingEmp(null);
@@ -223,6 +241,17 @@ export default function Employees() {
             >
               <Upload className="h-4 w-4" />
               <span>Import Excel</span>
+            </button>
+          )}
+          {hasPermission('users.create') && (
+            <button 
+              onClick={handleSyncCanteen}
+              disabled={syncingCanteen}
+              className="px-4 py-2 bg-gold-600 hover:bg-gold-700 text-slate-950 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+              title="Sync employees from Canteen Integration API"
+            >
+              <RefreshCw className={`h-4 w-4 ${syncingCanteen ? 'animate-spin' : ''}`} />
+              <span>{syncingCanteen ? 'Syncing API...' : 'Sync Canteen API'}</span>
             </button>
           )}
         </div>
