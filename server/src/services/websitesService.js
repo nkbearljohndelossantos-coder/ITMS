@@ -116,6 +116,60 @@ class WebsitesService {
       }
     };
   }
+
+  async checkWebsiteNow(id) {
+    const website = await this.getWebsiteById(id);
+    if (!website) return null;
+
+    const startTime = Date.now();
+    let httpStatusCode = null;
+    let responseTimeMs = 0;
+    let sslValid = false;
+    let status = 'Down';
+
+    try {
+      const isHttps = website.domain.startsWith('https://');
+      sslValid = isHttps;
+
+      const response = await fetch(website.domain, { 
+        method: 'GET',
+        headers: { 'User-Agent': 'NKB-ITMS-WebsiteMonitor/1.0' },
+        signal: AbortSignal.timeout(10000)
+      });
+
+      responseTimeMs = Date.now() - startTime;
+      httpStatusCode = response.status;
+      status = response.ok ? 'Active' : 'Down';
+    } catch (err) {
+      responseTimeMs = Date.now() - startTime;
+      status = 'Down';
+    }
+
+    await db('website_monitoring').where('id', id).update({
+      status,
+      http_status_code: httpStatusCode,
+      response_time_ms: responseTimeMs,
+      ssl_valid: sslValid,
+      last_checked_at: new Date(),
+      last_success_at: status === 'Active' ? new Date() : website.last_success_at,
+      last_failure_at: status === 'Down' ? new Date() : website.last_failure_at,
+      consecutive_failures: status === 'Down' ? (website.consecutive_failures + 1) : 0,
+      updated_at: new Date()
+    });
+
+    await db('website_uptime_logs').insert({
+      website_id: id,
+      checked_at: new Date(),
+      response_time_ms: responseTimeMs,
+      http_status_code: httpStatusCode,
+      ssl_valid: sslValid,
+      status: status === 'Active' ? 'Up' : 'Down',
+      error_message: status === 'Down' ? `HTTP Status ${httpStatusCode || 'Timeout/Failed'}` : null
+    });
+
+    return this.getWebsiteById(id);
+  }
 }
 
 module.exports = new WebsitesService();
+

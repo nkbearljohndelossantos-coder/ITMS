@@ -12,5 +12,7 @@ router.put('/:id', requirePermission('websites.manage'), websitesController.upda
 router.delete('/:id', requirePermission('websites.manage'), websitesController.deleteWebsite);
 
 router.get('/:id/logs', requirePermission('websites.view'), websitesController.getWebsiteLogs);
+router.post('/:id/check', requirePermission('websites.manage'), websitesController.checkWebsiteNow);
 
 module.exports = router;
+

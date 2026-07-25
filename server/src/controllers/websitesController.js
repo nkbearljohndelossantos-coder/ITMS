@@ -77,3 +77,15 @@ exports.getWebsiteLogs = async (req, res) => {
     res.status(500).json({ error: 'Failed to retrieve website logs' });
   }
 };
+
+exports.checkWebsiteNow = async (req, res) => {
+  try {
+    const updatedWeb = await websitesService.checkWebsiteNow(req.params.id);
+    if (!updatedWeb) return res.status(404).json({ error: 'Website not found' });
+    res.json({ success: true, data: updatedWeb });
+  } catch (error) {
+    logger.error(`Error in checkWebsiteNow: ${error.message}`);
+    res.status(500).json({ error: 'Failed to check website' });
+  }
+};
+
