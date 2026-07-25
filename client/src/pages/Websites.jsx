@@ -27,13 +27,17 @@ export default function Websites() {
   const [editingSite, setEditingSite] = useState(null);
   const [saving, setSaving] = useState(false);
 
+  // Expiration "Never" checkbox states
+  const [noDomainExpiry, setNoDomainExpiry] = useState(false);
+  const [noSslExpiry, setNoSslExpiry] = useState(false);
+
   // Logs Modal
   const [logsModalOpen, setLogsModalOpen] = useState(false);
   const [selectedSiteForLogs, setSelectedSiteForLogs] = useState(null);
   const [logs, setLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm();
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
 
   const loadData = async () => {
     setLoading(true);
@@ -67,6 +71,8 @@ export default function Websites() {
 
   const openAddModal = () => {
     setEditingSite(null);
+    setNoDomainExpiry(false);
+    setNoSslExpiry(false);
     reset({
       name: '',
       domain: 'https://',
@@ -82,12 +88,18 @@ export default function Websites() {
   const openEditModal = (site, e) => {
     if (e) e.stopPropagation();
     setEditingSite(site);
+    const isNoDomain = site.domain_expiration_date === 'Never' || site.domain_expiration_date === '9999-12-31';
+    const isNoSsl = site.ssl_expiration_date === 'Never' || site.ssl_expiration_date === '9999-12-31';
+
+    setNoDomainExpiry(isNoDomain);
+    setNoSslExpiry(isNoSsl);
+
     reset({
       name: site.name || '',
       domain: site.domain || '',
       hosting_provider: site.hosting_provider || '',
-      domain_expiration_date: site.domain_expiration_date ? site.domain_expiration_date.split('T')[0] : '',
-      ssl_expiration_date: site.ssl_expiration_date ? site.ssl_expiration_date.split('T')[0] : '',
+      domain_expiration_date: (!isNoDomain && site.domain_expiration_date) ? site.domain_expiration_date.split('T')[0] : '',
+      ssl_expiration_date: (!isNoSsl && site.ssl_expiration_date) ? site.ssl_expiration_date.split('T')[0] : '',
       dns_info: site.dns_info || '',
       admin_employee_id: site.admin_employee_id ? String(site.admin_employee_id) : ''
     });
@@ -100,8 +112,8 @@ export default function Websites() {
       name: data.name,
       domain: data.domain,
       hosting_provider: data.hosting_provider || null,
-      domain_expiration_date: data.domain_expiration_date || null,
-      ssl_expiration_date: data.ssl_expiration_date || null,
+      domain_expiration_date: noDomainExpiry ? 'Never' : (data.domain_expiration_date || null),
+      ssl_expiration_date: noSslExpiry ? 'Never' : (data.ssl_expiration_date || null),
       dns_info: data.dns_info || null,
       admin_employee_id: data.admin_employee_id ? parseInt(data.admin_employee_id) : null
     };
@@ -346,11 +358,27 @@ export default function Websites() {
                   </div>
                   <div>
                     <span className="text-[10px] font-bold uppercase text-slate-400">Domain Expiry:</span>
-                    <p className="font-semibold text-slate-700">{site.domain_expiration_date ? site.domain_expiration_date.split('T')[0] : 'N/A'}</p>
+                    <p className="font-semibold text-slate-700">
+                      {site.domain_expiration_date === 'Never' || site.domain_expiration_date === '9999-12-31' ? (
+                        <span className="text-emerald-700 font-bold">Never (Lifetime)</span>
+                      ) : site.domain_expiration_date ? (
+                        site.domain_expiration_date.split('T')[0]
+                      ) : (
+                        'N/A'
+                      )}
+                    </p>
                   </div>
                   <div>
                     <span className="text-[10px] font-bold uppercase text-slate-400">SSL Expiry:</span>
-                    <p className="font-semibold text-slate-700">{site.ssl_expiration_date ? site.ssl_expiration_date.split('T')[0] : 'N/A'}</p>
+                    <p className="font-semibold text-slate-700">
+                      {site.ssl_expiration_date === 'Never' || site.ssl_expiration_date === '9999-12-31' ? (
+                        <span className="text-emerald-700 font-bold">Never (Lifetime)</span>
+                      ) : site.ssl_expiration_date ? (
+                        site.ssl_expiration_date.split('T')[0]
+                      ) : (
+                        'N/A'
+                      )}
+                    </p>
                   </div>
                 </div>
 
@@ -486,12 +514,51 @@ export default function Websites() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-slate-500 mb-1">Domain Expiration Date</label>
-                  <input type="date" {...register('domain_expiration_date')} className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-slate-500">Domain Expiration Date</label>
+                    <label className="flex items-center gap-1 text-[10px] text-slate-600 font-bold cursor-pointer hover:text-slate-900">
+                      <input 
+                        type="checkbox" 
+                        checked={noDomainExpiry} 
+                        onChange={e => {
+                          setNoDomainExpiry(e.target.checked);
+                          if (e.target.checked) setValue('domain_expiration_date', '');
+                        }} 
+                        className="rounded border-slate-350 cursor-pointer" 
+                      />
+                      <span>Never</span>
+                    </label>
+                  </div>
+                  <input 
+                    type="date" 
+                    disabled={noDomainExpiry} 
+                    {...register('domain_expiration_date')} 
+                    className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed" 
+                  />
                 </div>
+
                 <div>
-                  <label className="block text-slate-500 mb-1">SSL Expiration Date</label>
-                  <input type="date" {...register('ssl_expiration_date')} className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-slate-500">SSL Expiration Date</label>
+                    <label className="flex items-center gap-1 text-[10px] text-slate-600 font-bold cursor-pointer hover:text-slate-900">
+                      <input 
+                        type="checkbox" 
+                        checked={noSslExpiry} 
+                        onChange={e => {
+                          setNoSslExpiry(e.target.checked);
+                          if (e.target.checked) setValue('ssl_expiration_date', '');
+                        }} 
+                        className="rounded border-slate-350 cursor-pointer" 
+                      />
+                      <span>Never</span>
+                    </label>
+                  </div>
+                  <input 
+                    type="date" 
+                    disabled={noSslExpiry} 
+                    {...register('ssl_expiration_date')} 
+                    className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed" 
+                  />
                 </div>
               </div>
 
