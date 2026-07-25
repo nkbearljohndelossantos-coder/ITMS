@@ -379,12 +379,6 @@ class NetworkService {
       .leftJoin('assets', 'user_network_assignments.asset_id', 'assets.id')
       .leftJoin('wifi_networks', 'user_network_assignments.access_point_id', 'wifi_networks.id')
       .leftJoin('departments', 'user_network_assignments.department_id', 'departments.id')
-      .leftJoin('ip_allocations', function() {
-        this.on('user_network_assignments.id', '=', 'ip_allocations.employee_id') // Wait! Let's match employee_id or assignment ID
-          .andOn('ip_allocations.assignment_type', '=', db.raw("'User Assignment'"))
-          .andOn('ip_allocations.status', '=', db.raw("'Active'"))
-          .andOnNull('ip_allocations.deleted_at');
-      })
       .select(
         'user_network_assignments.*',
         db.raw("concat(employees.first_name, ' ', employees.last_name) as employee_name"),

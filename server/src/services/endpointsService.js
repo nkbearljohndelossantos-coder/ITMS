@@ -9,8 +9,7 @@ class EndpointsService {
   async getAllOS({ page = 1, limit = 10, search = '', activationStatus = '' }) {
     const query = db('operating_systems')
       .join('assets', 'operating_systems.asset_id', 'assets.id')
-      .select('operating_systems.*', 'assets.name as asset_name', 'assets.asset_code', 'assets.serial_number')
-      .whereNull('assets.deleted_at');
+      .select('operating_systems.*', 'assets.name as asset_name', 'assets.asset_code', 'assets.serial_number');
 
     if (activationStatus) {
       query.where('operating_systems.activation_status', activationStatus);
@@ -138,8 +137,7 @@ class EndpointsService {
   async getAllAntivirus({ page = 1, limit = 10, search = '', scanResult = '' }) {
     const query = db('antivirus_tracking')
       .join('assets', 'antivirus_tracking.asset_id', 'assets.id')
-      .select('antivirus_tracking.*', 'assets.name as asset_name', 'assets.asset_code', 'assets.serial_number')
-      .whereNull('assets.deleted_at');
+      .select('antivirus_tracking.*', 'assets.name as asset_name', 'assets.asset_code', 'assets.serial_number');
 
     if (scanResult) {
       query.where('antivirus_tracking.scan_result', scanResult);
