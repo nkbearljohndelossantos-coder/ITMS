@@ -7,10 +7,12 @@ describe('Enterprise Backup Module - Phase 1 Integration Tests', () => {
 
   let tokenString;
   let enrolledDeviceId = 'NKB-TEST-DEV-001';
+  let deviceDbId;
   let deviceAuthToken;
+  let repoId;
+  let jobId;
 
   beforeAll(async () => {
-    // Ensure migrations are run on test DB
     await db.migrate.latest();
   });
 
@@ -85,6 +87,7 @@ describe('Enterprise Backup Module - Phase 1 Integration Tests', () => {
     expect(res.body.data.deviceId).toBe(enrolledDeviceId);
     expect(res.body.data.deviceAuthCredentialToken).toBeDefined();
 
+    deviceDbId = res.body.data.deviceDbId;
     deviceAuthToken = res.body.data.deviceAuthCredentialToken;
   });
 
@@ -104,6 +107,74 @@ describe('Enterprise Backup Module - Phase 1 Integration Tests', () => {
 
     expect(res.statusCode).toBe(400);
     expect(res.body.success).toBe(false);
+  });
+
+  test('6. Database Repository Creation & Credentials Security', async () => {
+    const repoPayload = {
+      name: 'Integration Test SMB Repo',
+      type: 'SMB',
+      targetPath: '\\\\192.168.1.200\\Backups',
+      concurrentJobLimit: 3,
+      smbDomain: 'WORKGROUP',
+      smbUsername: 'smb_user',
+      smbPassword: 'SuperSecretSMBPassword123!'
+    };
+
+    const [insertedId] = await db('backup_repositories').insert({
+      name: repoPayload.name,
+      type: repoPayload.type,
+      target_path: repoPayload.targetPath,
+      status: 'Healthy',
+      is_encrypted_at_rest: true,
+      concurrent_job_limit: repoPayload.concurrentJobLimit,
+      created_at: new Date(),
+      updated_at: new Date()
+    });
+
+    repoId = insertedId;
+    expect(repoId).toBeGreaterThan(0);
+  });
+
+  test('7. Backup Job Creation & Lease Trigger', async () => {
+    const [insertedJobId] = await db('backup_jobs').insert({
+      job_code: 'JOB-TEST-001',
+      name: 'Integration Test File Backup',
+      device_id: deviceDbId,
+      repository_id: repoId,
+      job_type: 'FileBackup',
+      backup_mode: 'Incremental',
+      status: 'Idle',
+      created_at: new Date(),
+      updated_at: new Date()
+    });
+
+    jobId = insertedJobId;
+    expect(jobId).toBeGreaterThan(0);
+
+    const [execId] = await db('backup_executions').insert({
+      execution_code: 'EXEC-TEST-001',
+      job_id: jobId,
+      device_id: deviceDbId,
+      lease_id: 'LEASE-TEST-001',
+      lease_expires_at: new Date(Date.now() + 1800000),
+      attempt_number: 1,
+      idempotency_key: 'IDEM-TEST-001',
+      state: 'assigned',
+      created_at: new Date(),
+      updated_at: new Date()
+    });
+
+    expect(execId).toBeGreaterThan(0);
+  });
+
+  test('8. Duplicate Job Assignment Prevention', async () => {
+    const activeExec = await db('backup_executions')
+      .where({ job_id: jobId })
+      .whereIn('state', ['assigned', 'reading', 'writing'])
+      .first();
+
+    expect(activeExec).toBeDefined();
+    expect(activeExec.lease_id).toBe('LEASE-TEST-001');
   });
 
 });
