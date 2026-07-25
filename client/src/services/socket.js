@@ -30,11 +30,11 @@ export const connectSocket = (token, onNotificationReceived) => {
   });
 
   socket.on('connect_error', (err) => {
-    if (err.message === 'Invalid token' || err.message === 'Authentication token required') {
+    if (err.message === 'Invalid token' || err.message === 'Authentication token required' || err.message.includes('timeout')) {
       console.warn('Socket authentication token expired or invalid. Disconnecting socket until re-login.');
       if (socket) socket.disconnect();
     } else {
-      console.error('Socket connection error:', err.message);
+      console.warn('Socket connection retry:', err.message);
     }
   });
 
