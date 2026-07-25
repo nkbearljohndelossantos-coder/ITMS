@@ -584,6 +584,45 @@ router.get('/audit-logs', authenticateToken, requirePermission('remote_device.vi
   }
 });
 
+// Get Gateway Settings
+router.get('/settings', authenticateToken, requirePermission('remote_device.manage_settings'), async (req, res) => {
+  try {
+    const settings = await db('remote_management_settings').select('*');
+    const settingsObj = {};
+    settings.forEach(s => { settingsObj[s.setting_key] = s.setting_value; });
+    return res.json({ success: true, data: settingsObj });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to retrieve settings.' });
+  }
+});
+
+// Save Gateway Settings
+router.post('/settings', authenticateToken, requirePermission('remote_device.manage_settings'), async (req, res) => {
+  try {
+    const { meshcentral_server_url, meshcentral_api_user, meshcentral_api_token_hash } = req.body;
+    
+    if (meshcentral_server_url !== undefined) {
+      await db('remote_management_settings')
+        .where({ setting_key: 'meshcentral_server_url' })
+        .update({ setting_value: meshcentral_server_url });
+    }
+    if (meshcentral_api_user !== undefined) {
+      await db('remote_management_settings')
+        .where({ setting_key: 'meshcentral_api_user' })
+        .update({ setting_value: meshcentral_api_user });
+    }
+    if (meshcentral_api_token_hash !== undefined) {
+      await db('remote_management_settings')
+        .where({ setting_key: 'meshcentral_api_token_hash' })
+        .update({ setting_value: meshcentral_api_token_hash });
+    }
+
+    return res.json({ success: true, message: 'Gateway settings updated successfully.' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to update settings.' });
+  }
+});
+
 // 16. Production Gate Sign-off
 router.post('/settings/production-gate/signoff', authenticateToken, requirePermission('remote_device.manage_settings'), async (req, res) => {
   try {

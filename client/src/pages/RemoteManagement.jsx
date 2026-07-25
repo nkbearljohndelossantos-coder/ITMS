@@ -955,37 +955,92 @@ export default function RemoteManagement() {
 
       {/* TAB 10: SETTINGS & PRODUCTION ACTIVATION GATE CHECKLIST */}
       {activeTab === 'settings' && (
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
-          <div className="border-b pb-4">
-            <h3 className="font-bold text-slate-900 text-base">Production Activation Gate Checklist</h3>
-            <p className="text-xs text-slate-500">12 Mandatory Security & Compliance Sign-offs required before enabling Production Mode</p>
+        <div className="space-y-6">
+          {/* Gateway Settings Form */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
+            <div className="border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                <Settings className="h-5 w-5 text-gold-600" />
+                <span>MeshCentral System Gateway Settings</span>
+              </h3>
+              <p className="text-xs text-slate-500">Configure your live self-hosted MeshCentral server WSS URL, API service user, and token credentials.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">MeshCentral Server WSS / HTTPS URL:</label>
+                <input
+                  type="text"
+                  value={gatewayForm.meshcentral_server_url}
+                  onChange={e => setGatewayForm({ ...gatewayForm, meshcentral_server_url: e.target.value })}
+                  placeholder="https://timer-end-comes-township.trycloudflare.com"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono outline-none focus:border-gold-500"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">Service Account User:</label>
+                <input
+                  type="text"
+                  value={gatewayForm.meshcentral_api_user}
+                  onChange={e => setGatewayForm({ ...gatewayForm, meshcentral_api_user: e.target.value })}
+                  placeholder="daybud35"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono outline-none focus:border-gold-500"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">API Secret Token / Hash:</label>
+                <input
+                  type="password"
+                  value={gatewayForm.meshcentral_api_token_hash}
+                  onChange={e => setGatewayForm({ ...gatewayForm, meshcentral_api_token_hash: e.target.value })}
+                  placeholder="••••••••••••••••"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono outline-none focus:border-gold-500"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleSaveGatewaySettings}
+              className="px-4 py-2 bg-gold-600 hover:bg-gold-650 text-slate-950 font-bold rounded-lg text-xs cursor-pointer shadow flex items-center gap-2"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              <span>Save Gateway Settings</span>
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {dashboardData?.productionGateChecklist?.map(g => (
-              <div key={g.id} className={`p-4 rounded-xl border text-xs space-y-2 ${
-                g.is_passed ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <div className="flex justify-between items-start">
-                  <span className="font-mono font-bold text-[10px] text-slate-500">{g.check_code}</span>
-                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                    g.is_passed ? 'bg-emerald-200 text-emerald-900' : 'bg-amber-100 text-amber-900'
-                  }`}>
-                    {g.is_passed ? 'PASSED' : 'PENDING'}
-                  </span>
+          {/* Production Activation Gate Checklist */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
+            <div className="border-b pb-4">
+              <h3 className="font-bold text-slate-900 text-base">Production Activation Gate Checklist</h3>
+              <p className="text-xs text-slate-500">12 Mandatory Security & Compliance Sign-offs required before enabling Production Mode</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {dashboardData?.productionGateChecklist?.map(g => (
+                <div key={g.id} className={`p-4 rounded-xl border text-xs space-y-2 ${
+                  g.is_passed ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <div className="flex justify-between items-start">
+                    <span className="font-mono font-bold text-[10px] text-slate-500">{g.check_code}</span>
+                    <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                      g.is_passed ? 'bg-emerald-200 text-emerald-900' : 'bg-amber-100 text-amber-900'
+                    }`}>
+                      {g.is_passed ? 'PASSED' : 'PENDING'}
+                    </span>
+                  </div>
+                  <h4 className="font-bold text-slate-900 text-xs">{g.check_title}</h4>
+                  <p className="text-slate-600 text-[11px]">{g.description}</p>
+                  {!g.is_passed && (
+                    <button
+                      onClick={() => handleSignoffGate(g.check_code)}
+                      className="px-3 py-1 bg-slate-900 hover:bg-gold-650 text-white font-bold rounded text-[10px] cursor-pointer mt-2"
+                    >
+                      Sign Off Gate
+                    </button>
+                  )}
                 </div>
-                <h4 className="font-bold text-slate-900 text-xs">{g.check_title}</h4>
-                <p className="text-slate-600 text-[11px]">{g.description}</p>
-                {!g.is_passed && (
-                  <button
-                    onClick={() => handleSignoffGate(g.check_code)}
-                    className="px-3 py-1 bg-slate-900 hover:bg-gold-650 text-white font-bold rounded text-[10px] cursor-pointer mt-2"
-                  >
-                    Sign Off Gate
-                  </button>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       )}
