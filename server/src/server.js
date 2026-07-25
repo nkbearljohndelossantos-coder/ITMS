@@ -13,6 +13,8 @@ const server = http.createServer(app);
 
 // 1. Initialize Socket.IO
 socketUtil.init(server);
+const { initBackupSocket } = require('./modules/enterprise-backup/socket/backupAgentSocket');
+initBackupSocket(socketUtil.getIO());
 
 // 2. Global Security Middlewares
 app.use(helmet({
@@ -101,6 +103,7 @@ app.use('/api/reports/itops', require('./routes/reports-itops'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/backups', require('./routes/backups'));
+app.use('/api/v1/backups', require('./modules/enterprise-backup/routes/enterpriseBackupRoutes'));
 app.use('/api/endpoints', require('./routes/endpoints'));
 app.use('/api/network', require('./routes/network'));
 app.use('/api/printers', require('./routes/printers'));
