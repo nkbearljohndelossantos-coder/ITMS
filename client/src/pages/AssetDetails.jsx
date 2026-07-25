@@ -25,6 +25,34 @@ export default function AssetDetails() {
   const [departments, setDepartments] = useState([]);
   const [categories, setCategories] = useState([]);
 
+  // Assign/Transfer selection states for auto fill
+  const [selectedAssignEmp, setSelectedAssignEmp] = useState('');
+  const [selectedAssignDept, setSelectedAssignDept] = useState('');
+  const [selectedTransferEmp, setSelectedTransferEmp] = useState('');
+  const [selectedTransferDept, setSelectedTransferDept] = useState('');
+
+  const handleAssignEmpChange = (e) => {
+    const empId = e.target.value;
+    setSelectedAssignEmp(empId);
+    if (empId) {
+      const emp = employees.find(item => String(item.id) === String(empId));
+      if (emp && emp.department_id) {
+        setSelectedAssignDept(String(emp.department_id));
+      }
+    }
+  };
+
+  const handleTransferEmpChange = (e) => {
+    const empId = e.target.value;
+    setSelectedTransferEmp(empId);
+    if (empId) {
+      const emp = employees.find(item => String(item.id) === String(empId));
+      if (emp && emp.department_id) {
+        setSelectedTransferDept(String(emp.department_id));
+      }
+    }
+  };
+
   // Modal Control
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
@@ -799,7 +827,11 @@ export default function AssetDetails() {
                   </p>
                   {hasPermission('assets.assign') && (
                     <button 
-                      onClick={() => setAssignModalOpen(true)}
+                      onClick={() => {
+                        setSelectedAssignEmp('');
+                        setSelectedAssignDept('');
+                        setAssignModalOpen(true);
+                      }}
                       className="w-full py-2.5 bg-slate-950 hover:bg-gold-600 text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer shadow transition-colors"
                     >
                       <UserCheck className="h-4.5 w-4.5" />
@@ -843,16 +875,26 @@ export default function AssetDetails() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-slate-500 mb-1">Issue to Employee</label>
-                  <select name="employeeId" className="w-full p-2 border border-slate-350 rounded bg-white">
+                  <select 
+                    name="employeeId" 
+                    value={selectedAssignEmp}
+                    onChange={handleAssignEmpChange}
+                    className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900"
+                  >
                     <option value="">-- Choose Employee --</option>
                     {employees.map(e => (
-                      <option key={e.id} value={e.id}>{e.full_name} ({e.employee_number})</option>
+                      <option key={e.id} value={e.id}>{e.full_name || `${e.first_name} ${e.last_name}`} ({e.employee_number})</option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-slate-500 mb-1">Issue to Department</label>
-                  <select name="departmentId" className="w-full p-2 border border-slate-350 rounded bg-white">
+                  <select 
+                    name="departmentId" 
+                    value={selectedAssignDept}
+                    onChange={e => setSelectedAssignDept(e.target.value)}
+                    className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900"
+                  >
                     <option value="">-- Choose Dept --</option>
                     {departments.map(d => (
                       <option key={d.id} value={d.id}>{d.name}</option>
@@ -966,16 +1008,26 @@ export default function AssetDetails() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-slate-500 mb-1">Transfer to Employee</label>
-                  <select name="employeeId" className="w-full p-2 border border-slate-350 rounded bg-white">
+                  <select 
+                    name="employeeId" 
+                    value={selectedTransferEmp}
+                    onChange={handleTransferEmpChange}
+                    className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900"
+                  >
                     <option value="">-- Choose Employee --</option>
                     {employees.map(e => (
-                      <option key={e.id} value={e.id}>{e.full_name} ({e.employee_number})</option>
+                      <option key={e.id} value={e.id}>{e.full_name || `${e.first_name} ${e.last_name}`} ({e.employee_number})</option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-slate-500 mb-1">Transfer to Department</label>
-                  <select name="departmentId" className="w-full p-2 border border-slate-350 rounded bg-white">
+                  <select 
+                    name="departmentId" 
+                    value={selectedTransferDept}
+                    onChange={e => setSelectedTransferDept(e.target.value)}
+                    className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900"
+                  >
                     <option value="">-- Choose Dept --</option>
                     {departments.map(d => (
                       <option key={d.id} value={d.id}>{d.name}</option>

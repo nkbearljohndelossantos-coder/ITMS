@@ -35,6 +35,21 @@ export default function Licenses() {
   const [employees, setEmployees] = useState([]);
   const [assets, setAssets] = useState([]);
 
+  // Auto fill seat states
+  const [selectedSeatEmp, setSelectedSeatEmp] = useState('');
+  const [selectedSeatAsset, setSelectedSeatAsset] = useState('');
+
+  const handleSeatEmpChange = (e) => {
+    const empId = e.target.value;
+    setSelectedSeatEmp(empId);
+    if (empId) {
+      const assignedAsset = assets.find(ast => String(ast.employee_id) === String(empId));
+      if (assignedAsset) {
+        setSelectedSeatAsset(String(assignedAsset.id));
+      }
+    }
+  };
+
   // Modals state
   const [licenseModalOpen, setLicenseModalOpen] = useState(false);
   const [seatModalOpen, setSeatModalOpen] = useState(false);
@@ -446,17 +461,27 @@ export default function Licenses() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-slate-500 mb-1">Assign to Employee</label>
-                  <select name="employeeId" className="w-full p-2 border border-slate-350 rounded bg-white">
+                  <select 
+                    name="employeeId" 
+                    value={selectedSeatEmp}
+                    onChange={handleSeatEmpChange}
+                    className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900"
+                  >
                     <option value="">-- Choose Employee --</option>
                     {employees.map(e => (
-                      <option key={e.id} value={e.id}>{e.full_name}</option>
+                      <option key={e.id} value={e.id}>{e.full_name || `${e.first_name} ${e.last_name}`}</option>
                     ))}
                   </select>
                 </div>
                 
                 <div>
                   <label className="block text-slate-500 mb-1">Install on Workstation</label>
-                  <select name="assetId" className="w-full p-2 border border-slate-350 rounded bg-white">
+                  <select 
+                    name="assetId" 
+                    value={selectedSeatAsset}
+                    onChange={e => setSelectedSeatAsset(e.target.value)}
+                    className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900"
+                  >
                     <option value="">-- Choose Asset --</option>
                     {assets.map(a => (
                       <option key={a.id} value={a.id}>{a.name} ({a.asset_code})</option>
