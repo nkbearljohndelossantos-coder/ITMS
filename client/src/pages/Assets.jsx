@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Plus, Search, Filter, Laptop, AlertCircle, Eye, 
+  Plus, Search, Filter, Laptop, AlertCircle, Eye, Edit,
   Wrench, CheckCircle, HelpCircle, ShieldAlert, X
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -38,6 +38,7 @@ const assetSchema = z.object({
   warranty_start_date: z.string().optional(),
   warranty_end_date: z.string().optional(),
   condition: z.string().default('Good'),
+  status: z.string().optional().default('Available'),
   remarks: z.string().optional()
 });
 
@@ -58,8 +59,9 @@ export default function Assets() {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, pages: 1, limit: 10 });
 
-  // Add Asset modal state
+  // Add / Edit Asset modal state
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingAsset, setEditingAsset] = useState(null);
   const [uploadImage, setUploadImage] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -100,10 +102,72 @@ export default function Assets() {
     loadData();
   }, [page, search, catFilter, statusFilter, conditionFilter, warrantyFilter]);
 
-  const handleAddAsset = async (data) => {
+  const openAddModal = () => {
+    setEditingAsset(null);
+    setUploadImage(null);
+    reset({
+      name: '',
+      category_id: '',
+      brand: '',
+      model: '',
+      serial_number: '',
+      description: '',
+      specs_cpu: '',
+      specs_ram: '',
+      specs_storage: '',
+      specs_os: '',
+      specs_win_edition: '',
+      hostname: '',
+      mac_address: '',
+      ip_address: '',
+      purchase_date: '',
+      purchase_price: 0,
+      supplier: '',
+      invoice_number: '',
+      warranty_start_date: '',
+      warranty_end_date: '',
+      condition: 'Good',
+      status: 'Available',
+      remarks: ''
+    });
+    setModalOpen(true);
+  };
+
+  const openEditModal = (asset, e) => {
+    if (e) e.stopPropagation();
+    setEditingAsset(asset);
+    setUploadImage(null);
+    reset({
+      name: asset.name || '',
+      category_id: String(asset.category_id || ''),
+      brand: asset.brand || '',
+      model: asset.model || '',
+      serial_number: asset.serial_number || '',
+      description: asset.description || '',
+      specs_cpu: asset.specs_cpu || '',
+      specs_ram: asset.specs_ram || '',
+      specs_storage: asset.specs_storage || '',
+      specs_os: asset.specs_os || '',
+      specs_win_edition: asset.specs_win_edition || '',
+      hostname: asset.hostname || '',
+      mac_address: asset.mac_address || '',
+      ip_address: asset.ip_address || '',
+      purchase_date: asset.purchase_date ? asset.purchase_date.split('T')[0] : '',
+      purchase_price: asset.purchase_price || 0,
+      supplier: asset.supplier || '',
+      invoice_number: asset.invoice_number || '',
+      warranty_start_date: asset.warranty_start_date ? asset.warranty_start_date.split('T')[0] : '',
+      warranty_end_date: asset.warranty_end_date ? asset.warranty_end_date.split('T')[0] : '',
+      condition: asset.condition || 'Good',
+      status: asset.status || 'Available',
+      remarks: asset.remarks || ''
+    });
+    setModalOpen(true);
+  };
+
+  const handleSaveAsset = async (data) => {
     setSaving(true);
     const formData = new FormData();
-    // Append fields
     Object.entries(data).forEach(([key, val]) => {
       if (val !== undefined && val !== null) formData.append(key, val);
     });
@@ -113,18 +177,32 @@ export default function Assets() {
     }
 
     try {
-      const res = await api.post('/assets', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      if (res.data.success) {
-        showToast('Created', 'Asset registered successfully.', 'success');
-        setModalOpen(false);
-        reset();
-        setUploadImage(null);
-        loadData();
+      if (editingAsset) {
+        const res = await api.put(`/assets/${editingAsset.id}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        if (res.data.success) {
+          showToast('Updated', 'Asset profile updated successfully.', 'success');
+          setModalOpen(false);
+          reset();
+          setUploadImage(null);
+          setEditingAsset(null);
+          loadData();
+        }
+      } else {
+        const res = await api.post('/assets', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        if (res.data.success) {
+          showToast('Created', 'Asset registered successfully.', 'success');
+          setModalOpen(false);
+          reset();
+          setUploadImage(null);
+          loadData();
+        }
       }
     } catch (err) {
-      showToast('Error', err.response?.data?.message || 'Failed to create asset.', 'error');
+      showToast('Error', err.response?.data?.message || 'Failed to save asset.', 'error');
     } finally {
       setSaving(false);
     }
@@ -142,7 +220,7 @@ export default function Assets() {
         
         {hasPermission('assets.create') && (
           <button 
-            onClick={() => setModalOpen(true)}
+            onClick={openAddModal}
             className="px-4 py-2 bg-slate-950 text-white rounded-lg text-xs font-semibold hover:bg-gold-650 transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
           >
             <Plus className="h-4 w-4" />
@@ -277,10 +355,23 @@ export default function Assets() {
                     Condition: {asset.condition}
                   </span>
                   
-                  <span className="text-slate-400 font-semibold group-hover:text-gold-700 flex items-center gap-0.5">
-                    <span>View Profile</span>
-                    <Eye className="h-3 w-3" />
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {hasPermission('assets.update') && (
+                      <button
+                        type="button"
+                        onClick={(e) => openEditModal(asset, e)}
+                        className="text-slate-600 hover:text-gold-700 font-semibold flex items-center gap-0.5 cursor-pointer px-1.5 py-0.5 rounded hover:bg-slate-100 transition-colors"
+                        title="Edit Asset"
+                      >
+                        <Edit className="h-3 w-3" />
+                        <span>Edit</span>
+                      </button>
+                    )}
+                    <span className="text-slate-400 font-semibold group-hover:text-gold-700 flex items-center gap-0.5">
+                      <span>View Profile</span>
+                      <Eye className="h-3 w-3" />
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -320,19 +411,19 @@ export default function Assets() {
       )}
 
       {/* ==========================================
-          ADD ASSET MODAL DIALOG
+          ADD / EDIT ASSET MODAL DIALOG
           ========================================== */}
       {modalOpen && (
         <div className="fixed inset-0 z-55 flex items-center justify-center bg-black/55 p-4 overflow-y-auto animate-fade-in" onClick={() => setModalOpen(false)}>
           <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-slide-up my-8" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
-              <h3 className="font-bold text-sm">Register IT Asset</h3>
+              <h3 className="font-bold text-sm">{editingAsset ? 'Edit IT Asset Profile' : 'Register IT Asset'}</h3>
               <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-white">
                 <X className="h-5 w-5" />
               </button>
             </div>
             
-            <form onSubmit={handleSubmit(handleAddAsset)} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto text-xs font-semibold">
+            <form onSubmit={handleSubmit(handleSaveAsset)} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto text-xs font-semibold">
               
               <div className="space-y-4">
                 <h4 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-1">1. Base Asset Information</h4>
@@ -368,12 +459,22 @@ export default function Assets() {
                     {errors.serial_number && <p className="text-rose-600 text-[10px] mt-0.5 font-bold">{errors.serial_number.message}</p>}
                   </div>
                   <div>
-                    <label className="block text-slate-500 mb-1">Starting Condition</label>
+                    <label className="block text-slate-500 mb-1">Physical Condition</label>
                     <select {...register('condition')} className="w-full p-2 border border-slate-350 rounded bg-white">
                       <option value="New">New</option>
                       <option value="Good">Good</option>
                       <option value="Fair">Fair</option>
                       <option value="Poor">Poor</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Status</label>
+                    <select {...register('status')} className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900">
+                      <option value="Available">Available</option>
+                      <option value="Assigned">Assigned</option>
+                      <option value="Under Repair">Under Repair</option>
+                      <option value="Damaged">Damaged</option>
+                      <option value="Retired">Retired</option>
                     </select>
                   </div>
                 </div>
@@ -486,7 +587,7 @@ export default function Assets() {
                   disabled={saving}
                   className="px-4 py-2 bg-slate-900 hover:bg-gold-650 text-white rounded font-bold transition-colors cursor-pointer"
                 >
-                  {saving ? 'Creating profile...' : 'Register Asset'}
+                  {saving ? 'Saving...' : editingAsset ? 'Save Changes' : 'Register Asset'}
                 </button>
               </div>
 

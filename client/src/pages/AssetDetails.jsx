@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Laptop, Calendar, Wrench, ShieldAlert, ArrowLeft, Plus, 
+  Laptop, Calendar, Wrench, ShieldAlert, ArrowLeft, Plus, Edit,
   Upload, FileText, Trash2, Printer, Download, UserCheck, 
   ArrowRightLeft, RotateCcw, AlertTriangle, ShieldCheck, X
 } from 'lucide-react';
@@ -23,15 +23,19 @@ export default function AssetDetails() {
   // Metadata dropdown options
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [categories, setCategories] = useState([]);
 
   // Modal Control
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [returnModalOpen, setReturnModalOpen] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [stickerModalOpen, setStickerModalOpen] = useState(false);
 
-  // File Upload
+  // Form / File upload states
+  const [saving, setSaving] = useState(false);
+  const [editUploadImage, setEditUploadImage] = useState(null);
   const [uploadFiles, setUploadFiles] = useState([]);
 
   const loadAssetDetails = async () => {
@@ -51,6 +55,9 @@ export default function AssetDetails() {
 
       const deptRes = await api.get('/employees/departments');
       if (deptRes.data.success) setDepartments(deptRes.data.data);
+
+      const catRes = await api.get('/settings/asset-categories');
+      if (catRes.data.success) setCategories(catRes.data.data);
 
     } catch (err) {
       if (err.response?.status === 404) {
@@ -177,6 +184,32 @@ export default function AssetDetails() {
       }
     } catch (err) {
       showToast('Error', 'Failed to upload document files.', 'error');
+    }
+  };
+
+  // 4b. Edit Asset Details
+  const handleEditAssetSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    const formData = new FormData(e.target);
+    if (editUploadImage) {
+      formData.append('image', editUploadImage);
+    }
+
+    try {
+      const res = await api.put(`/assets/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (res.data.success) {
+        showToast('Updated', 'Asset details updated successfully.', 'success');
+        setEditModalOpen(false);
+        setEditUploadImage(null);
+        loadAssetDetails();
+      }
+    } catch (err) {
+      showToast('Error', err.response?.data?.message || 'Failed to update asset.', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -501,6 +534,15 @@ export default function AssetDetails() {
         </button>
 
         <div className="flex items-center gap-2">
+          {hasPermission('assets.update') && (
+            <button 
+              onClick={() => setEditModalOpen(true)}
+              className="px-3 py-1.5 bg-slate-900 hover:bg-gold-650 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
+            >
+              <Edit className="h-3.5 w-3.5" />
+              <span>Edit Asset</span>
+            </button>
+          )}
           {hasPermission('assets.delete') && (
             <button 
               onClick={handleDeleteAsset}
@@ -1107,6 +1149,187 @@ export default function AssetDetails() {
                 <span>Print Sticker Now</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==========================================
+          MODAL: EDIT ASSET PROFILE
+          ========================================== */}
+      {editModalOpen && asset && (
+        <div className="fixed inset-0 z-55 flex items-center justify-center bg-black/55 p-4 overflow-y-auto animate-fade-in" onClick={() => setEditModalOpen(false)}>
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-slide-up my-8" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
+              <h3 className="font-bold text-sm">Edit IT Asset Profile ({asset.asset_code})</h3>
+              <button onClick={() => setEditModalOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleEditAssetSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto text-xs font-semibold">
+              
+              <div className="space-y-4">
+                <h4 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-1">1. Base Asset Information</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-500 mb-1">Asset Name *</label>
+                    <input type="text" name="name" defaultValue={asset.name || ''} required className="w-full p-2 border border-slate-350 rounded" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Category *</label>
+                    <select name="category_id" defaultValue={asset.category_id || ''} required className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900">
+                      <option value="">Choose category</option>
+                      {categories.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Brand *</label>
+                    <input type="text" name="brand" defaultValue={asset.brand || ''} required className="w-full p-2 border border-slate-350 rounded" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Model *</label>
+                    <input type="text" name="model" defaultValue={asset.model || ''} required className="w-full p-2 border border-slate-350 rounded" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Serial Number *</label>
+                    <input type="text" name="serial_number" defaultValue={asset.serial_number || ''} required className="w-full p-2 border border-slate-350 rounded" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Physical Condition</label>
+                    <select name="condition" defaultValue={asset.condition || 'Good'} className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900">
+                      <option value="New">New</option>
+                      <option value="Good">Good</option>
+                      <option value="Fair">Fair</option>
+                      <option value="Poor">Poor</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Status</label>
+                    <select name="status" defaultValue={asset.status || 'Available'} className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900">
+                      <option value="Available">Available</option>
+                      <option value="Assigned">Assigned</option>
+                      <option value="Under Repair">Under Repair</option>
+                      <option value="Damaged">Damaged</option>
+                      <option value="Retired">Retired</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-2">
+                <h4 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-1">2. Hardware Specifications (Optional)</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-slate-500 mb-1">CPU Details</label>
+                    <input type="text" name="specs_cpu" defaultValue={asset.specs_cpu || ''} className="w-full p-2 border border-slate-350 rounded" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">RAM Capacity</label>
+                    <input type="text" name="specs_ram" defaultValue={asset.specs_ram || ''} className="w-full p-2 border border-slate-350 rounded" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Storage Size</label>
+                    <input type="text" name="specs_storage" defaultValue={asset.specs_storage || ''} className="w-full p-2 border border-slate-350 rounded" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Operating System</label>
+                    <input type="text" name="specs_os" defaultValue={asset.specs_os || ''} className="w-full p-2 border border-slate-350 rounded" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Windows Edition</label>
+                    <input type="text" name="specs_win_edition" defaultValue={asset.specs_win_edition || ''} className="w-full p-2 border border-slate-350 rounded" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-2">
+                <h4 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-1">3. Network Information</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-slate-500 mb-1">Hostname</label>
+                    <input type="text" name="hostname" defaultValue={asset.hostname || ''} className="w-full p-2 border border-slate-350 rounded" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">MAC Address</label>
+                    <input type="text" name="mac_address" defaultValue={asset.mac_address || ''} className="w-full p-2 border border-slate-350 rounded" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">IP Address</label>
+                    <input type="text" name="ip_address" defaultValue={asset.ip_address || ''} className="w-full p-2 border border-slate-350 rounded" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-2">
+                <h4 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-1">4. Purchase & Warranty Information</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-slate-500 mb-1">Purchase Price (PHP)</label>
+                    <input type="number" step="0.01" name="purchase_price" defaultValue={asset.purchase_price || 0} className="w-full p-2 border border-slate-350 rounded" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Purchase Date</label>
+                    <input type="date" name="purchase_date" defaultValue={asset.purchase_date ? asset.purchase_date.split('T')[0] : ''} className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Invoice Number</label>
+                    <input type="text" name="invoice_number" defaultValue={asset.invoice_number || ''} className="w-full p-2 border border-slate-350 rounded" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Warranty Start Date</label>
+                    <input type="date" name="warranty_start_date" defaultValue={asset.warranty_start_date ? asset.warranty_start_date.split('T')[0] : ''} className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Warranty End Date</label>
+                    <input type="date" name="warranty_end_date" defaultValue={asset.warranty_end_date ? asset.warranty_end_date.split('T')[0] : ''} className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Supplier / Vendor</label>
+                    <input type="text" name="supplier" defaultValue={asset.supplier || ''} className="w-full p-2 border border-slate-350 rounded" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-2">
+                <h4 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-1">5. Physical Attributes & Uploads</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-500 mb-1">Upload New Asset Photo</label>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={e => setEditUploadImage(e.target.files[0])}
+                      className="w-full p-1.5 border border-slate-350 rounded bg-slate-50" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Remarks / Location Details</label>
+                    <input type="text" name="remarks" defaultValue={asset.remarks || ''} className="w-full p-2 border border-slate-350 rounded" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-150">
+                <button
+                  type="button"
+                  onClick={() => setEditModalOpen(false)}
+                  className="px-4 py-2 border border-slate-350 text-slate-700 bg-white rounded font-bold hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-4 py-2 bg-slate-900 hover:bg-gold-650 text-white rounded font-bold transition-colors cursor-pointer"
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+
+            </form>
           </div>
         </div>
       )}
