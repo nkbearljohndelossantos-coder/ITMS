@@ -599,50 +599,32 @@ export default function RemoteManagement() {
             </div>
 
             {/* Screen Viewer Canvas Container */}
-            <div className="flex-1 bg-slate-950 p-4 flex items-center justify-center relative min-h-[420px]">
+            <div className="flex-1 bg-slate-950 p-4 flex items-center justify-center relative min-h-[460px]">
               {activeModalSession ? (
-                <div className="w-full h-full max-w-5xl bg-slate-900 border-2 border-slate-800 rounded-xl overflow-hidden shadow-2xl relative group flex flex-col justify-between" style={{ minHeight: '400px' }}>
-                  {/* Simulated Windows Desktop Display */}
-                  <div className="w-full h-full bg-gradient-to-br from-blue-950 via-slate-900 to-indigo-950 p-6 flex flex-col justify-between relative min-h-[380px] select-none">
-                    {/* Top Bar of Remote Windows Desktop */}
-                    <div className="flex justify-between items-center text-xs text-slate-300 font-sans border-b border-white/10 pb-2">
-                      <div className="flex items-center gap-2">
-                        <Monitor className="h-4 w-4 text-blue-400" />
-                        <span className="font-bold text-white">Windows 11 Pro Desktop — {selectedDevice.name}</span>
-                      </div>
-                      <div className="text-[10px] text-slate-400 font-mono">Res: 1920x1080 @ 60fps</div>
+                <div className="w-full h-full max-w-6xl bg-slate-900 border-2 border-slate-800 rounded-xl overflow-hidden shadow-2xl flex flex-col justify-between" style={{ minHeight: '460px' }}>
+                  {/* Top Web Viewer Bar */}
+                  <div className="w-full bg-slate-900 px-4 py-2 border-b border-slate-800 flex justify-between items-center text-xs">
+                    <div className="flex items-center gap-2 font-mono text-slate-300">
+                      <Globe className="h-4 w-4 text-emerald-400" />
+                      <span>MeshCentral Web Client Stream: <strong className="text-white">https://192.168.254.139</strong></span>
                     </div>
+                    <button
+                      onClick={() => window.open(activeModalSession?.sessionUrl || 'https://192.168.254.139', '_blank')}
+                      className="px-3 py-1 bg-gold-600 hover:bg-gold-650 text-slate-950 font-extrabold rounded text-xs flex items-center gap-1.5 cursor-pointer shadow uppercase tracking-wider"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      <span>Open Fullscreen MeshCentral Viewer</span>
+                    </button>
+                  </div>
 
-                    {/* Desktop Center Workspace */}
-                    <div className="my-auto space-y-3 text-center">
-                      <div className="inline-block p-4 bg-slate-900/80 backdrop-blur border border-white/15 rounded-2xl shadow-2xl space-y-2">
-                        <Monitor className="h-16 w-16 text-emerald-400 mx-auto animate-pulse" />
-                        <h4 className="font-extrabold text-base text-white">Remote Screen Stream Active</h4>
-                        <div className="text-xs text-emerald-300 font-mono font-bold">
-                          User Session: {selectedDevice.logged_in_user || 'NKB\\employee'}
-                        </div>
-                        <p className="text-[11px] text-slate-300 max-w-sm mx-auto">
-                          Full Keyboard & Mouse input relay active over secure WebSocket channel.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Simulated Windows 11 Taskbar */}
-                    <div className="w-full bg-slate-900/90 backdrop-blur px-4 py-2 border-t border-white/10 flex justify-between items-center text-xs rounded-b-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="h-6 w-6 bg-blue-600 rounded flex items-center justify-center text-white font-black text-xs cursor-pointer hover:bg-blue-500">
-                          田
-                        </div>
-                        <div className="h-6 px-3 bg-white/10 rounded flex items-center text-[10px] text-slate-300 cursor-pointer">
-                          🔍 Type here to search
-                        </div>
-                      </div>
-                      <div className="text-[10px] font-mono text-slate-400 flex items-center gap-2">
-                        <span>🔊 100%</span>
-                        <span>📶 Connected</span>
-                        <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                    </div>
+                  {/* Embedded Iframe Container */}
+                  <div className="flex-1 w-full bg-black relative min-h-[400px]">
+                    <iframe
+                      src={activeModalSession?.sessionUrl || 'https://192.168.254.139'}
+                      title="MeshCentral Live Desktop Relay Viewer"
+                      className="w-full h-full min-h-[400px] border-0"
+                      allow="autoplay; camera; microphone; fullscreen; clipboard-read; clipboard-write"
+                    />
                   </div>
                 </div>
               ) : (
