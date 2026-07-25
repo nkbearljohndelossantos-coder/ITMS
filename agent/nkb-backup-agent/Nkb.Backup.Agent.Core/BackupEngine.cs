@@ -9,6 +9,14 @@ using Nkb.Backup.Agent.Contracts;
 
 namespace Nkb.Backup.Agent.Core
 {
+    public class BackupProgressTracker
+    {
+        public int ChunkIndex { get; set; } = 0;
+        public long TotalBytesRead { get; set; } = 0;
+        public long TotalBytesWritten { get; set; } = 0;
+        public long FilesProcessed { get; set; } = 0;
+    }
+
     public class BackupEngine
     {
         private const int ChunkSizeBytes = 4 * 1024 * 1024; // 4MB chunks
@@ -80,10 +88,7 @@ namespace Nkb.Backup.Agent.Core
                 Directory.CreateDirectory(chunksDir);
 
                 long totalBytesScanned = 0;
-                long totalBytesRead = 0;
-                long totalBytesWritten = 0;
-                long filesProcessed = 0;
-                int chunkIndex = 0;
+                var tracker = new BackupProgressTracker();
 
                 foreach (var srcPath in sourcePaths)
                 {
@@ -93,7 +98,7 @@ namespace Nkb.Backup.Agent.Core
                     {
                         var fi = new FileInfo(srcPath);
                         totalBytesScanned += fi.Length;
-                        await ProcessSingleFile(fi, chunksDir, dekKey, ref chunkIndex, ref totalBytesRead, ref totalBytesWritten, ref filesProcessed, ct);
+                        await ProcessSingleFile(fi, chunksDir, dekKey, tracker, ct);
                     }
                     else if (Directory.Exists(srcPath))
                     {
@@ -105,7 +110,7 @@ namespace Nkb.Backup.Agent.Core
                             if ((file.Attributes & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint) continue; // Skip junctions
 
                             totalBytesScanned += file.Length;
-                            await ProcessSingleFile(file, chunksDir, dekKey, ref chunkIndex, ref totalBytesRead, ref totalBytesWritten, ref filesProcessed, ct);
+                            await ProcessSingleFile(file, chunksDir, dekKey, tracker, ct);
                         }
                     }
                 }
@@ -117,10 +122,10 @@ namespace Nkb.Backup.Agent.Core
                     Timestamp = DateTime.UtcNow.ToString("o"),
                     Provider = "FileBackupProvider",
                     ProviderVersion = "1.0.0",
-                    TotalSize = totalBytesRead,
-                    StoredSize = totalBytesWritten,
-                    FilesCount = filesProcessed,
-                    ChunksCount = chunkIndex,
+                    TotalSize = tracker.TotalBytesRead,
+                    StoredSize = tracker.TotalBytesWritten,
+                    FilesCount = tracker.FilesProcessed,
+                    ChunksCount = tracker.ChunkIndex,
                     EncryptionAlgo = "AES-256-GCM",
                     DekKeyRef = "KEK-V1"
                 };
@@ -140,9 +145,9 @@ namespace Nkb.Backup.Agent.Core
                     State = "completed",
                     ProgressPercent = 100,
                     BytesScanned = totalBytesScanned,
-                    BytesRead = totalBytesRead,
-                    BytesTransferred = totalBytesWritten,
-                    FilesProcessed = filesProcessed
+                    BytesRead = tracker.TotalBytesRead,
+                    BytesTransferred = tracker.TotalBytesWritten,
+                    FilesProcessed = tracker.FilesProcessed
                 });
 
                 return true;
@@ -168,10 +173,7 @@ namespace Nkb.Backup.Agent.Core
             FileInfo file, 
             string chunksDir, 
             byte[] dekKey, 
-            ref int chunkIndex, 
-            ref long totalBytesRead, 
-            ref long totalBytesWritten, 
-            ref long filesProcessed,
+            BackupProgressTracker tracker,
             CancellationToken ct)
         {
             using var fs = file.Open(FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
@@ -185,7 +187,7 @@ namespace Nkb.Backup.Agent.Core
 
                 var (ciphertext, nonce, tag) = EncryptChunkAESGCM(chunkData, dekKey);
 
-                string chunkFileName = $"chunk_{chunkIndex:D6}.dat";
+                string chunkFileName = $"chunk_{tracker.ChunkIndex:D6}.dat";
                 string chunkPath = Path.Combine(chunksDir, chunkFileName);
 
                 using (var chunkFile = File.Create(chunkPath))
@@ -195,12 +197,12 @@ namespace Nkb.Backup.Agent.Core
                     chunkFile.Write(ciphertext, 0, ciphertext.Length);
                 }
 
-                chunkIndex++;
-                totalBytesRead += bytesRead;
-                totalBytesWritten += (nonce.Length + tag.Length + ciphertext.Length);
+                tracker.ChunkIndex++;
+                tracker.TotalBytesRead += bytesRead;
+                tracker.TotalBytesWritten += (nonce.Length + tag.Length + ciphertext.Length);
             }
 
-            filesProcessed++;
+            tracker.FilesProcessed++;
         }
     }
 }

@@ -1,28 +1,19 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-  <Product Id="*" Name="NKB Backup Agent" Language="1033" Version="1.0.0.0" Manufacturer="NKB Manufacturing Corp." UpgradeCode="78b8f2c3-9d1a-4e2b-8a5c-6e7f8a9b0c1d">
-    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" />
-
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="NKB Backup Agent" Language="1033" Version="1.0.0.0" Manufacturer="NKB Manufacturing Corp." UpgradeCode="78b8f2c3-9d1a-4e2b-8a5c-6e7f8a9b0c1d" Scope="perMachine">
     <MajorUpgrade DowngradeErrorMessage="A newer version of NKB Backup Agent is already installed." />
     <MediaTemplate EmbedCab="yes" />
 
     <Feature Id="ProductFeature" Title="NKB Backup Agent" Level="1">
       <ComponentGroupRef Id="ProductComponents" />
     </Feature>
-  </Product>
 
-  <Fragment>
-    <Directory Id="TARGETDIR" Name="SourceDir">
-      <Directory Id="ProgramFilesFolder">
-        <Directory Id="INSTALLFOLDER" Name="NKB Backup Agent" />
-      </Directory>
-    </Directory>
-  </Fragment>
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="NKB Backup Agent" />
+    </StandardDirectory>
 
-  <Fragment>
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-      <Component Id="AgentServiceExecutable" Guid="a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d">
-        <File Id="ServiceExe" Source="$(var.ServiceOutputDir)\Nkb.Backup.Agent.Service.exe" KeyPath="yes" />
+      <Component Id="AgentServiceExecutable" Bitness="always64" Guid="a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d">
+        <File Id="ServiceExe" Source="..\publish\win-x64\Nkb.Backup.Agent.Service.exe" KeyPath="yes" />
         <ServiceInstall
           Id="ServiceInstaller"
           Type="ownProcess"
@@ -36,5 +27,5 @@
         <ServiceControl Id="StartService" Start="install" Stop="both" Remove="uninstall" Name="NKBBackupAgent" Wait="yes" />
       </Component>
     </ComponentGroup>
-  </Fragment>
+  </Package>
 </Wix>
