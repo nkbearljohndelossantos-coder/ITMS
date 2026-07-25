@@ -602,7 +602,15 @@ export default function AssetDetails() {
             <div className="flex gap-4 items-start border-b border-slate-100 pb-4">
               <div className="h-16 w-16 bg-slate-100 rounded-lg flex items-center justify-center border text-slate-400">
                 {asset.image_path ? (
-                  <img src={asset.image_path} alt={asset.name} className="h-full w-full object-cover rounded-lg" />
+                  <img 
+                    src={asset.image_path} 
+                    alt={asset.name} 
+                    className="h-full w-full object-cover rounded-lg" 
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.style.display = 'none';
+                    }}
+                  />
                 ) : (
                   <Laptop className="h-8 w-8 text-slate-300" />
                 )}

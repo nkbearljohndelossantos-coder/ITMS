@@ -78,6 +78,11 @@ app.get(['/favicon.ico', '/api/favicon.ico'], (req, res) => {
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// Explicit 404 for missing upload files to prevent SPA fallback 422 errors
+app.use(['/uploads/*', '/api/uploads/*'], (req, res) => {
+  res.status(404).json({ success: false, message: 'Requested upload file not found' });
+});
+
 // 6. API Route Handlers
 app.use('/api/auth', authLimiter, require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
