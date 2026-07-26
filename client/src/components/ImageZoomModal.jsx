@@ -181,11 +181,19 @@ export function ZoomableImage({ src, alt, className = '', containerClassName = '
   const [modalOpen, setModalOpen] = useState(false);
   const [hasError, setHasError] = useState(false);
 
+  useEffect(() => {
+    setHasError(false);
+  }, [src]);
+
   if (!src || hasError) {
     if (FallbackIcon) {
       return <FallbackIcon className={className} />;
     }
-    return null;
+    return (
+      <div className={`bg-slate-100 flex items-center justify-center text-slate-400 font-mono text-[10px] ${containerClassName || className}`}>
+        No Image
+      </div>
+    );
   }
 
   return (

@@ -325,7 +325,12 @@ router.put('/:id', authenticateToken, requirePermission('assets.update'), upload
       }
     }
 
-    const newImagePath = req.file ? `/uploads/images/${req.file.filename}` : (assetData.image_path || oldAsset.image_path);
+    let newImagePath = oldAsset.image_path;
+    if (req.file) {
+      newImagePath = `/uploads/images/${req.file.filename}`;
+    } else if (assetData.image_path && assetData.image_path !== 'null' && assetData.image_path !== 'undefined' && String(assetData.image_path).trim() !== '') {
+      newImagePath = assetData.image_path;
+    }
 
     await db.transaction(async (trx) => {
       // 1. Update fields
