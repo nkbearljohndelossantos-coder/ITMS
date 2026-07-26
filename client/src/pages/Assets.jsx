@@ -4,8 +4,9 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { 
   Plus, Search, Filter, Laptop, AlertCircle, Eye, Edit,
-  Wrench, CheckCircle, HelpCircle, ShieldAlert, X
+  Wrench, CheckCircle, HelpCircle, ShieldAlert, X, ZoomIn
 } from 'lucide-react';
+import ImageZoomModal from '../components/ImageZoomModal';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -64,6 +65,8 @@ export default function Assets() {
   const [editingAsset, setEditingAsset] = useState(null);
   const [uploadImage, setUploadImage] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [previewTitle, setPreviewTitle] = useState('');
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: zodResolver(assetSchema)
@@ -302,13 +305,28 @@ export default function Assets() {
               className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md hover:border-gold-500 transition-all duration-200 cursor-pointer flex flex-col group"
             >
               {/* Card top banner with photo/placeholder */}
-              <div className="h-32 bg-slate-950/5 relative flex items-center justify-center border-b border-slate-100">
+              <div className="h-32 bg-slate-950/5 relative flex items-center justify-center border-b border-slate-100 group/img">
                 {asset.image_path ? (
-                  <img 
-                    src={asset.image_path} 
-                    alt={asset.name} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
-                  />
+                  <>
+                    <img 
+                      src={asset.image_path} 
+                      alt={asset.name} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewImage(asset.image_path);
+                        setPreviewTitle(asset.name);
+                      }}
+                      className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white gap-1 text-xs font-bold cursor-zoom-in"
+                      title="Click to zoom picture details"
+                    >
+                      <ZoomIn className="h-5 w-5 drop-shadow" />
+                      <span>Zoom Details</span>
+                    </button>
+                  </>
                 ) : (
                   <Laptop className="h-12 w-12 text-slate-300" />
                 )}
@@ -595,6 +613,14 @@ export default function Assets() {
           </div>
         </div>
       )}
+
+      {/* Image Zoom Lightbox Modal */}
+      <ImageZoomModal 
+        isOpen={!!previewImage} 
+        src={previewImage} 
+        title={previewTitle} 
+        onClose={() => setPreviewImage(null)} 
+      />
 
     </div>
   );

@@ -8,6 +8,7 @@ import {
   ArrowRightLeft, RotateCcw, AlertTriangle, ShieldCheck, X
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
+import { ZoomableImage } from '../components/ImageZoomModal';
 
 export default function AssetDetails() {
   const { id } = useParams();
@@ -602,14 +603,11 @@ export default function AssetDetails() {
             <div className="flex gap-4 items-start border-b border-slate-100 pb-4">
               <div className="h-16 w-16 bg-slate-100 rounded-lg flex items-center justify-center border text-slate-400">
                 {asset.image_path ? (
-                  <img 
+                  <ZoomableImage 
                     src={asset.image_path} 
                     alt={asset.name} 
                     className="h-full w-full object-cover rounded-lg" 
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.style.display = 'none';
-                    }}
+                    containerClassName="h-full w-full rounded-lg"
                   />
                 ) : (
                   <Laptop className="h-8 w-8 text-slate-300" />

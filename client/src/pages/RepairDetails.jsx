@@ -6,6 +6,7 @@ import {
   Wrench, Laptop, Calendar, DollarSign, ArrowLeft, 
   Upload, CheckCircle, Save, Plus, Hammer, Trash2, Camera
 } from 'lucide-react';
+import { ZoomableImage } from '../components/ImageZoomModal';
 
 export default function RepairDetails() {
   const { id } = useParams();
@@ -346,7 +347,12 @@ export default function RepairDetails() {
                 <span className="block text-[9px] font-bold text-slate-400 uppercase">Before Repair Status</span>
                 <div className="h-32 rounded-lg bg-slate-50 border flex items-center justify-center overflow-hidden">
                   {repair.before_photo_path ? (
-                    <img src={repair.before_photo_path} alt="Before status" className="w-full h-full object-cover" />
+                    <ZoomableImage 
+                      src={repair.before_photo_path} 
+                      alt="Before repair status" 
+                      className="w-full h-full object-cover rounded-lg" 
+                      containerClassName="w-full h-full rounded-lg"
+                    />
                   ) : (
                     <span className="text-[10px] text-slate-400">No photo uploaded</span>
                   )}
@@ -358,7 +364,12 @@ export default function RepairDetails() {
                 <span className="block text-[9px] font-bold text-slate-400 uppercase">After Repair Status</span>
                 <div className="h-32 rounded-lg bg-slate-50 border flex items-center justify-center overflow-hidden">
                   {repair.after_photo_path ? (
-                    <img src={repair.after_photo_path} alt="After status" className="w-full h-full object-cover" />
+                    <ZoomableImage 
+                      src={repair.after_photo_path} 
+                      alt="After repair status" 
+                      className="w-full h-full object-cover rounded-lg" 
+                      containerClassName="w-full h-full rounded-lg"
+                    />
                   ) : (
                     <span className="text-[10px] text-slate-400">No photo uploaded</span>
                   )}
