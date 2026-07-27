@@ -223,6 +223,8 @@ export default function AssetDetails() {
     const formData = new FormData(e.target);
     if (editUploadImage) {
       formData.append('image', editUploadImage);
+    } else if (asset && asset.image_path) {
+      formData.append('image_path', asset.image_path);
     }
 
     try {

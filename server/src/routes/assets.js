@@ -331,6 +331,11 @@ router.put('/:id', authenticateToken, requirePermission('assets.update'), upload
     } else if (assetData.image_path && assetData.image_path !== 'null' && assetData.image_path !== 'undefined' && String(assetData.image_path).trim() !== '') {
       newImagePath = assetData.image_path;
     }
+    
+    // Always preserve existing photo if no new image uploaded
+    if (!newImagePath || newImagePath === 'null' || newImagePath === 'undefined') {
+      newImagePath = oldAsset.image_path;
+    }
 
     await db.transaction(async (trx) => {
       // 1. Update fields

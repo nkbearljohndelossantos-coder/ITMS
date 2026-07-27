@@ -177,6 +177,8 @@ export default function Assets() {
 
     if (uploadImage) {
       formData.append('image', uploadImage);
+    } else if (editingAsset && editingAsset.image_path) {
+      formData.append('image_path', editingAsset.image_path);
     }
 
     try {
