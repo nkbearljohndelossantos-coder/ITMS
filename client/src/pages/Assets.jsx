@@ -4,7 +4,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { 
   Plus, Search, Filter, Laptop, AlertCircle, Eye, Edit,
-  Wrench, CheckCircle, HelpCircle, ShieldAlert, X, ZoomIn
+  Wrench, CheckCircle, HelpCircle, ShieldAlert, X, ZoomIn, Camera, Upload
 } from 'lucide-react';
 import ImageZoomModal from '../components/ImageZoomModal';
 import { useForm } from 'react-hook-form';
@@ -578,13 +578,52 @@ export default function Assets() {
                 <h4 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-1">5. Physical Attributes & Uploads</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-slate-500 mb-1">Upload Asset Photo</label>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={e => setUploadImage(e.target.files[0])}
-                      className="w-full p-1.5 border border-slate-350 rounded bg-slate-50" 
-                    />
+                    <label className="block text-slate-700 font-bold mb-1">Asset Photo</label>
+                    {uploadImage ? (
+                      <div className="flex items-center gap-3 p-2 bg-slate-50 border border-slate-350 rounded-lg">
+                        <img 
+                          src={URL.createObjectURL(uploadImage)} 
+                          alt="Captured Asset" 
+                          className="h-12 w-12 object-cover rounded-lg border border-slate-300 shadow-sm" 
+                        />
+                        <div className="flex-1 space-y-0.5 min-w-0">
+                          <p className="text-xs font-bold text-slate-900 truncate">{uploadImage.name || 'Captured_Asset.jpg'}</p>
+                          <p className="text-[10px] text-slate-500 font-mono">{(uploadImage.size / 1024).toFixed(1)} KB</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setUploadImage(null)}
+                          className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded text-xs font-bold border border-rose-200 cursor-pointer"
+                        >
+                          Retake
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-gold-650 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow">
+                          <Camera className="h-4 w-4 text-gold-400" />
+                          <span>Take Photo</span>
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            capture="environment" 
+                            className="hidden" 
+                            onChange={e => e.target.files[0] && setUploadImage(e.target.files[0])} 
+                          />
+                        </label>
+
+                        <label className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-slate-350 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-sm">
+                          <Upload className="h-4 w-4 text-slate-500" />
+                          <span>Browse File</span>
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={e => e.target.files[0] && setUploadImage(e.target.files[0])} 
+                          />
+                        </label>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-slate-500 mb-1">Remarks / Location Details</label>

@@ -433,13 +433,132 @@ export default function Layout() {
         </header>
 
         {/* SCROLLABLE VIEWPORT CONTENT */}
-        <main className="flex-1 overflow-y-auto px-6 py-6 max-w-7xl w-full mx-auto">
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 max-w-7xl w-full mx-auto pb-24 md:pb-6">
           {getBreadcrumbs()}
           <div className="mt-4">
             <Outlet />
           </div>
         </main>
       </div>
+
+      {/* ==========================================
+          MOBILE BOTTOM NAVIGATION BAR (PHONE VIEW)
+          ========================================== */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-950 border-t border-slate-800/80 backdrop-blur-lg px-2 py-1.5 flex justify-around items-center text-[10px] font-bold shadow-2xl">
+        <Link
+          to="/"
+          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg transition-colors ${
+            location.pathname === '/' ? 'text-gold-500 bg-slate-900' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <LayoutDashboard className="h-5 w-5" />
+          <span>Dashboard</span>
+        </Link>
+
+        <Link
+          to="/assets"
+          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg transition-colors ${
+            location.pathname.startsWith('/assets') ? 'text-gold-500 bg-slate-900' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Laptop className="h-5 w-5" />
+          <span>Assets</span>
+        </Link>
+
+        <Link
+          to="/tickets"
+          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg transition-colors ${
+            location.pathname.startsWith('/tickets') ? 'text-gold-500 bg-slate-900' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Ticket className="h-5 w-5" />
+          <span>Help Desk</span>
+        </Link>
+
+        <Link
+          to="/remote-management"
+          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg transition-colors ${
+            location.pathname.startsWith('/remote-management') ? 'text-gold-500 bg-slate-900' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Radio className="h-5 w-5" />
+          <span>Remote</span>
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg transition-colors cursor-pointer ${
+            mobileMenuOpen ? 'text-gold-500 bg-slate-900' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Menu className="h-5 w-5" />
+          <span>Menu</span>
+        </button>
+      </nav>
+
+      {/* MOBILE MENU DRAWER SLIDE-UP */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-55 bg-black/65 backdrop-blur-sm animate-fade-in flex flex-col justify-end" onClick={() => setMobileMenuOpen(false)}>
+          <div className="bg-slate-900 rounded-t-2xl border-t border-slate-700 p-5 space-y-4 max-h-[80vh] overflow-y-auto animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <img src="/nkb-logo.png" alt="NKB Logo" className="h-6 object-contain" />
+                <h3 className="font-bold text-sm text-white">All Modules Menu</h3>
+              </div>
+              <button onClick={() => setMobileMenuOpen(false)} className="text-slate-400 hover:text-white p-1">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-slate-300">
+              {filteredMenu.flatMap((item, idx) => {
+                if (item.isDropdown) {
+                  return item.items.map(subItem => {
+                    const Icon = subItem.icon;
+                    return (
+                      <Link
+                        key={subItem.path}
+                        to={subItem.path}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center gap-2 p-2.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 rounded-xl text-slate-200"
+                      >
+                        <Icon className="h-4 w-4 text-gold-400" />
+                        <span className="truncate">{subItem.name}</span>
+                      </Link>
+                    );
+                  });
+                }
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2 p-2.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 rounded-xl text-slate-200"
+                  >
+                    <Icon className="h-4 w-4 text-gold-400" />
+                    <span className="truncate">{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+
+            <div className="pt-2 border-t border-slate-800">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  logout();
+                }}
+                className="w-full flex items-center justify-center gap-2 p-2.5 bg-rose-950/40 border border-rose-900/60 text-rose-400 rounded-xl font-bold text-xs cursor-pointer"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Sign Out ({user?.username})</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
