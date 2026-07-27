@@ -15,8 +15,8 @@ router.get('/', authenticateToken, requirePermission('assets.view'), async (req,
   const { page = 1, limit = 10, search = '', categoryId = '', status = '', condition = '', warrantyExpiring = 'false' } = req.query;
   const isSqlite = db.client.config.client === 'sqlite3';
   const concatEmpName = isSqlite 
-    ? db.raw("(employees.first_name || ' ' || employees.last_name) as employee_name") 
-    : db.raw("concat(employees.first_name, ' ', employees.last_name) as employee_name");
+    ? db.raw("TRIM(COALESCE(employees.first_name, '') || ' ' || COALESCE(employees.last_name, '')) as employee_name") 
+    : db.raw("TRIM(CONCAT(COALESCE(employees.first_name, ''), ' ', COALESCE(employees.last_name, ''))) as employee_name");
 
   try {
     const query = db('assets')
@@ -92,8 +92,8 @@ router.get('/:id', authenticateToken, requirePermission('assets.view'), async (r
   const { id } = req.params;
   const isSqlite = db.client.config.client === 'sqlite3';
   const concatEmpName = isSqlite 
-    ? db.raw("(employees.first_name || ' ' || employees.last_name) as employee_name") 
-    : db.raw("concat(employees.first_name, ' ', employees.last_name) as employee_name");
+    ? db.raw("TRIM(COALESCE(employees.first_name, '') || ' ' || COALESCE(employees.last_name, '')) as employee_name") 
+    : db.raw("TRIM(CONCAT(COALESCE(employees.first_name, ''), ' ', COALESCE(employees.last_name, ''))) as employee_name");
 
   try {
     const asset = await db('assets')

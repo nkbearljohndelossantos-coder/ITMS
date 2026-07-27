@@ -280,20 +280,20 @@ export default function AssetDetails() {
 
   const getAssignedToText = () => {
     if (!asset) return 'UNASSIGNED / IN STOCK';
-    if (activeAssignment?.employee_name) {
-      return activeAssignment.employee_name;
+    if (activeAssignment && activeAssignment.employee_name && String(activeAssignment.employee_name).trim() !== '') {
+      return String(activeAssignment.employee_name).trim();
     }
-    if (activeAssignment?.department_name) {
-      return `${activeAssignment.department_name} (Department)`;
+    if (activeAssignment && activeAssignment.department_name && String(activeAssignment.department_name).trim() !== '') {
+      return `${String(activeAssignment.department_name).trim()} (Dept)`;
     }
-    if (asset.employee_name) {
-      return asset.employee_name;
+    if (asset.employee_name && String(asset.employee_name).trim() !== '') {
+      return String(asset.employee_name).trim();
     }
-    if (asset.department_name) {
-      return `${asset.department_name} (Department)`;
+    if (asset.department_name && String(asset.department_name).trim() !== '') {
+      return `${String(asset.department_name).trim()} (Dept)`;
     }
-    if (asset.employee_first_name) {
-      return `${asset.employee_first_name} ${asset.employee_last_name || ''}`.trim();
+    if (asset.assigned_employee_name && String(asset.assigned_employee_name).trim() !== '') {
+      return String(asset.assigned_employee_name).trim();
     }
     return 'UNASSIGNED / IN STOCK';
   };
