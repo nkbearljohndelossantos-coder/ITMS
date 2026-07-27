@@ -74,6 +74,10 @@ app.get(['/favicon.ico', '/api/favicon.ico'], (req, res) => {
   if (fs.existsSync(publicIcoPath)) {
     return res.sendFile(publicIcoPath);
   }
+  const logoPath = path.join(__dirname, '../../client/dist/nkb-logo.png');
+  if (fs.existsSync(logoPath)) {
+    return res.sendFile(logoPath);
+  }
   return res.status(204).end();
 });
 
