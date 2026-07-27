@@ -218,26 +218,9 @@ export default function RemoteManagement() {
     });
   };
 
-  const handleLaunchDesktop = (mode = 'attended') => {
+  const handleLaunchDesktop = (mode = 'unattended') => {
     if (!selectedDevice) return;
     const actionKey = mode === 'unattended' ? 'UNATTENDED_ACCESS' : 'REMOTE_DESKTOP';
-    
-    if (mode === 'attended') {
-      api.post('/remote/requests', {
-        device_id: selectedDevice.device_id,
-        access_type: 'full_control',
-        reason: 'IT Remote Support Assistance'
-      }).then(res => {
-        if (res.data.success) {
-          alert(`🔔 Confirmation Prompt Sent!\n\nAn Attended Access Request has been sent to ${selectedDevice.name}.\n\nThe employee will see an 'Allow Connection / Deny Access' prompt pop up on their screen. Once they click 'Allow Connection', your remote control session will open automatically.`);
-          setActiveTab('desktop');
-        }
-      }).catch(err => {
-        console.error('Attended request error:', err);
-      });
-      return;
-    }
-
     const executeLaunch = (token) => {
       api.post('/remote/sessions/launch', {
         device_id: selectedDevice.device_id,
@@ -254,7 +237,11 @@ export default function RemoteManagement() {
       });
     };
 
-    triggerPrivilegedAction(actionKey, executeLaunch);
+    if (mode === 'unattended') {
+      triggerPrivilegedAction(actionKey, executeLaunch);
+    } else {
+      executeLaunch(null);
+    }
   };
 
   const handleSyncAssets = async () => {
