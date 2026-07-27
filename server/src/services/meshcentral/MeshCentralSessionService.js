@@ -24,7 +24,8 @@ class MeshCentralSessionService {
       is_used: false
     });
 
-    const sessionUrl = `${this.serverUrl}/?auth=${tokenHash}&mode=${accessMode}&type=${encodeURIComponent(connectionType)}`;
+    const baseUrl = this.serverUrl || 'https://192.168.254.139';
+    const sessionUrl = `${baseUrl}/?gotonode=${encodeURIComponent(deviceId)}&auth=${tokenHash}&mode=${accessMode}`;
     logger.info(`[MeshCentralSession] Generated short-lived authorization token for device ${deviceId}`);
     return { sessionUrl, tokenHash, expiresAt };
   }
