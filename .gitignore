@@ -21,7 +21,14 @@ build/
 *.db
 server/data/*.sqlite
 server/data/*.sqlite3
-server/uploads/
+# Uploaded asset media and documents (Do NOT track dynamic upload files in Git)
+server/uploads/*
+!server/uploads/images/
+!server/uploads/documents/
+server/uploads/images/*
+!server/uploads/images/.gitkeep
+server/uploads/documents/*
+!server/uploads/documents/.gitkeep
 
 # IDE & OS files
 .vscode/
