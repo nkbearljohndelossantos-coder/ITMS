@@ -404,30 +404,30 @@ export default function AssetDetails() {
             }
             .specs-block {
               background: #f1f5f9;
-              border-left: 2.5px solid #000000;
-              padding: 0.8mm 1.5mm;
-              margin-bottom: 0.8mm;
+              border-left: 2px solid #000000;
+              padding: 0.4mm 1mm;
+              margin-bottom: 0.5mm;
             }
             .specs-val {
-              font-size: 5.5pt;
+              font-size: 4.8pt;
               font-weight: 700;
               color: #000000;
-              line-height: 1.15;
-              max-height: 7mm;
+              line-height: 1.1;
+              max-height: 3.8mm;
               overflow: hidden;
             }
             .details-grid {
               display: flex;
               justify-content: space-between;
-              gap: 1.5mm;
-              margin-bottom: 0.6mm;
+              gap: 1mm;
+              margin-bottom: 0.4mm;
             }
             .grid-col {
               flex: 1;
               min-width: 0;
             }
             .grid-val {
-              font-size: 6.8pt;
+              font-size: 6.2pt;
               font-weight: 900;
               color: #000000;
               text-transform: uppercase;
@@ -438,9 +438,9 @@ export default function AssetDetails() {
             }
             .location-row {
               border-top: 0.8px solid #000000;
-              padding-top: 0.5mm;
-              margin-bottom: 0.5mm;
-              font-size: 5pt;
+              padding-top: 0.4mm;
+              margin-bottom: 0.4mm;
+              font-size: 5.8pt;
               line-height: 1.1;
               white-space: nowrap;
               overflow: hidden;
@@ -448,11 +448,11 @@ export default function AssetDetails() {
             }
             .location-title {
               font-weight: 900;
-              margin-right: 1mm;
+              margin-right: 0.8mm;
             }
             .location-text {
-              font-weight: 600;
-              color: #111111;
+              font-weight: 800;
+              color: #000000;
             }
             .footer-banner {
               border-top: 1px solid #000000;
@@ -1166,9 +1166,9 @@ export default function AssetDetails() {
 
                   {/* Model & Specs Box */}
                   {(getAssetModelText() || getAssetSpecsText()) && (
-                    <div className="bg-slate-100 border-l-3 border-black p-1.5 text-[9px] font-semibold leading-tight max-h-[50px] overflow-hidden rounded-r-xs">
-                      <span className="block text-[7.5px] font-extrabold text-slate-600 uppercase mb-0.5">Model & Hardware Specs :</span>
-                      <div className="text-slate-900 font-bold line-clamp-2">
+                    <div className="bg-slate-100 border-l-2 border-black px-1.5 py-1 text-[8.5px] font-semibold leading-tight max-h-[36px] overflow-hidden rounded-r-xs">
+                      <span className="block text-[7px] font-extrabold text-slate-600 uppercase mb-0.5">Model & Hardware Specs :</span>
+                      <div className="text-slate-900 font-bold line-clamp-1">
                         {getAssetModelText() && <span>Model: {getAssetModelText()}</span>}
                         {getAssetModelText() && getAssetSpecsText() && <span> | </span>}
                         {getAssetSpecsText() && <span>Specs: {getAssetSpecsText()}</span>}
