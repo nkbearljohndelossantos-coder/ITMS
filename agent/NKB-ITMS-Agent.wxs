@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="NKB ITMS Agent" Language="1033" Version="1.0.0.0" Manufacturer="NKB Manufacturing Corp." UpgradeCode="745B0A49-DD03-4A8D-BC26-BCBFA34D084C">
+    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of NKB ITMS Agent is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Property Id="ENROLLMENT_TOKEN" Secure="yes" />
+    <Property Id="SERVER_URL" Value="http://localhost:5000" Secure="yes" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER" Name="NKB ITMS Agent" />
+      </Directory>
+    </Directory>
+
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Component Id="AgentExecutable" Guid="845B0A49-DD03-4A8D-BC26-BCBFA34D084C">
+        <File Id="NKB.ITMS.Agent.exe" Source="$(var.HarvestPath)\NKB.ITMS.Agent.exe" KeyPath="yes" />
+        <ServiceInstall
+          Id="ServiceInstaller"
+          Type="ownProcess"
+          Name="NKB.ITMS.Agent"
+          DisplayName="NKB ITMS Agent"
+          Description="Provides endpoint inventory, security telemetry, and remote management for NKB ITMS."
+          Start="auto"
+          Account="LocalSystem"
+          ErrorControl="normal"
+          Arguments="SERVER_URL=&quot;[SERVER_URL]&quot; ENROLLMENT_TOKEN=&quot;[ENROLLMENT_TOKEN]&quot;" />
+        <ServiceControl Id="StartService" Start="install" Stop="both" Remove="both" Name="NKB.ITMS.Agent" Wait="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <Feature Id="ProductFeature" Title="NKB ITMS Agent" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+    </Feature>
+  </Product>
+</Wix>

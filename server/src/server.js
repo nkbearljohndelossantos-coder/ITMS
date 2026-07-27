@@ -114,6 +114,7 @@ app.use('/api/guest-wifi', require('./routes/guestWifi'));
 app.use('/api/websites', require('./routes/websites'));
 app.use('/api/secrets', require('./routes/secrets'));
 app.use('/api/remote', require('./routes/remoteManagement'));
+app.use('/api/v1/agent', require('./routes/agentApi'));
 
 // 7. Serve Static Frontend files
 const distPath = path.join(__dirname, '../../client/dist');

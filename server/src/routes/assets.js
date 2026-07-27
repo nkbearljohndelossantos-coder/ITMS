@@ -451,4 +451,109 @@ router.delete('/:id', authenticateToken, requirePermission('assets.delete'), asy
   }
 });
 
+// ==========================================
+// WINDOWS AGENT MANAGEMENT ENDPOINTS FOR ASSETS
+// ==========================================
+
+// 1. Generate One-Time Enrollment Token for Asset
+router.post('/:id/agent-token', authenticateToken, requirePermission('assets.edit'), async (req, res) => {
+  const { id } = req.params;
+  const crypto = require('crypto');
+
+  try {
+    const asset = await db('assets').where('id', id).first();
+    if (!asset) return res.status(404).json({ success: false, message: 'Asset not found.' });
+
+    const rawToken = 'NKB-' + crypto.randomBytes(16).toString('hex').toUpperCase();
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes TTL
+
+    await db('agent_enrollment_tokens').insert({
+      asset_id: id,
+      token_hash: tokenHash,
+      expires_at: expiresAt,
+      created_by: req.user.id
+    });
+
+    await logAudit(req, { action: 'Generate Agent Enrollment Token', module: 'Assets', recordId: id });
+
+    return res.json({
+      success: true,
+      data: {
+        token: rawToken,
+        expiresAt,
+        serverUrl: process.env.ITMS_PUBLIC_URL || `${req.protocol}://${req.get('host')}`
+      }
+    });
+
+  } catch (err) {
+    logger.error(`Generate enrollment token error: ${err.message}`);
+    return res.status(500).json({ success: false, message: 'Failed to generate token.' });
+  }
+});
+
+// 2. Get Agent & Inventory Details for Asset
+router.get('/:id/agent', authenticateToken, requirePermission('assets.view'), async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const agent = await db('agents').where('asset_id', id).first();
+    if (!agent) {
+      return res.json({ success: true, agent: null });
+    }
+
+    const hardware = await db('computer_hardware').where('agent_id', agent.id).first();
+    const disks = await db('physical_disks').where('agent_id', agent.id);
+    const volumes = await db('disk_volumes').where('agent_id', agent.id);
+    const network = await db('network_adapters').where('agent_id', agent.id);
+    const software = await db('installed_software').where('agent_id', agent.id).orderBy('name', 'asc');
+    const security = await db('windows_security_inventory').where('agent_id', agent.id).first();
+    const metrics = await db('performance_metrics').where('agent_id', agent.id).orderBy('recorded_at', 'desc').limit(20);
+    const recentLogs = await db('agent_logs').where('agent_id', agent.id).orderBy('logged_at', 'desc').limit(25);
+
+    // Calculate Online status: Heartbeat within 90 seconds
+    const isOnline = agent.last_heartbeat_at && (new Date() - new Date(agent.last_heartbeat_at)) < 90000;
+
+    return res.json({
+      success: true,
+      agent: {
+        ...agent,
+        isOnline
+      },
+      hardware,
+      disks,
+      volumes,
+      network,
+      software,
+      security,
+      metrics,
+      logs: recentLogs
+    });
+
+  } catch (err) {
+    logger.error(`Get asset agent details error: ${err.message}`);
+    return res.status(500).json({ success: false, message: 'Failed to retrieve agent details.' });
+  }
+});
+
+// 3. Revoke Agent for Asset
+router.post('/:id/agent/revoke', authenticateToken, requirePermission('assets.edit'), async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await db('agents').where('asset_id', id).update({
+      status: 'revoked',
+      enrollment_status: 'revoked',
+      revoked_at: new Date()
+    });
+
+    await db('managed_devices').where('asset_id', id).update({ is_online: false });
+    await logAudit(req, { action: 'Revoke Agent', module: 'Assets', recordId: id });
+
+    return res.json({ success: true, message: 'Agent has been revoked.' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to revoke agent.' });
+  }
+});
+
 module.exports = router;

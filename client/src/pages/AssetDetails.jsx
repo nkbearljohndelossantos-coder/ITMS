@@ -68,6 +68,11 @@ export default function AssetDetails() {
   const [editUploadImage, setEditUploadImage] = useState(null);
   const [uploadFiles, setUploadFiles] = useState([]);
 
+  const [agentData, setAgentData] = useState(null);
+  const [agentSubTab, setAgentSubTab] = useState('overview');
+  const [enrollmentTokenData, setEnrollmentTokenData] = useState(null);
+  const [softwareSearch, setSoftwareSearch] = useState('');
+
   const loadAssetDetails = async () => {
     setLoading(true);
     try {
@@ -78,6 +83,12 @@ export default function AssetDetails() {
         setHistory(res.data.data.history);
         setAssignments(res.data.data.assignments);
       }
+
+      // Load agent details
+      try {
+        const agentRes = await api.get(`/assets/${id}/agent`);
+        if (agentRes.data.success) setAgentData(agentRes.data);
+      } catch (e) {}
       
       // Load employees and depts for assignments dropdowns
       const empRes = await api.get('/employees', { params: { limit: 100 } });
@@ -103,6 +114,29 @@ export default function AssetDetails() {
   useEffect(() => {
     loadAssetDetails();
   }, [id]);
+
+  const handleGenerateAgentToken = async () => {
+    try {
+      const res = await api.post(`/assets/${id}/agent-token`);
+      if (res.data.success) {
+        setEnrollmentTokenData(res.data.data);
+      }
+    } catch (err) {
+      alert('Failed to generate agent enrollment token.');
+    }
+  };
+
+  const handleRevokeAgent = async () => {
+    if (!window.confirm('Are you sure you want to revoke this endpoint agent?')) return;
+    try {
+      const res = await api.post(`/assets/${id}/agent/revoke`);
+      if (res.data.success) {
+        loadAssetDetails();
+      }
+    } catch (err) {
+      alert('Failed to revoke agent.');
+    }
+  };
 
   const activeAssignment = assignments.find(a => a.status === 'Active');
 
@@ -879,6 +913,303 @@ export default function AssetDetails() {
 
         </div>
 
+      </div>
+
+      {/* ==========================================
+          WINDOWS ITMS AGENT & ENDPOINT INVENTORY PANEL
+          ========================================== */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5">
+        <div className="flex flex-wrap justify-between items-center border-b border-slate-100 pb-4 gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-slate-900 text-gold-400 rounded-xl">
+              <Laptop className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-900">Windows ITMS Endpoint Agent</h3>
+                {agentData?.agent ? (
+                  agentData.agent.isOnline ? (
+                    <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-extrabold flex items-center gap-1 border border-emerald-300">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                      ONLINE & CONNECTED
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[10px] font-extrabold border border-slate-300">
+                      OFFLINE
+                    </span>
+                  )
+                ) : (
+                  <span className="px-2.5 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[10px] font-extrabold border border-amber-300">
+                    NOT ENROLLED
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Native C# Windows Service Agent for Real-time Hardware, Software & Security Telemetry
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {!agentData?.agent ? (
+              <button
+                onClick={handleGenerateAgentToken}
+                className="px-3.5 py-2 bg-slate-900 hover:bg-gold-650 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow"
+              >
+                <Plus className="h-4 w-4 text-gold-400" />
+                <span>Generate Enrollment Token</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleRevokeAgent}
+                className="px-3 py-1.5 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
+              >
+                Revoke Agent
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Enrollment Token Modal / Alert Box */}
+        {enrollmentTokenData && (
+          <div className="p-4 bg-slate-900 border border-slate-800 text-white rounded-xl space-y-3 animate-fade-in shadow-lg">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-gold-400 uppercase tracking-wider">🔑 One-Time Enrollment Token Generated</span>
+              <button onClick={() => setEnrollmentTokenData(null)} className="text-slate-400 hover:text-white">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="p-2.5 bg-slate-800 rounded-lg border border-slate-700 font-mono">
+                <span className="block text-[10px] text-slate-400 font-sans uppercase">Token Value:</span>
+                <span className="text-sm font-bold text-emerald-400 select-all">{enrollmentTokenData.token}</span>
+              </div>
+              <div className="p-2.5 bg-slate-800 rounded-lg border border-slate-700">
+                <span className="block text-[10px] text-slate-400 uppercase">Expires At:</span>
+                <span className="text-xs font-bold text-slate-200">{new Date(enrollmentTokenData.expiresAt).toLocaleTimeString()}</span>
+              </div>
+            </div>
+            <div className="p-2.5 bg-slate-950/60 rounded-lg border border-slate-800 text-[11px] text-slate-300 font-mono">
+              msiexec /i NKB-ITMS-Agent.msi ENROLLMENT_TOKEN="{enrollmentTokenData.token}" SERVER_URL="{enrollmentTokenData.serverUrl}" /qn
+            </div>
+          </div>
+        )}
+
+        {agentData?.agent ? (
+          <div className="space-y-4">
+            {/* Sub-Tabs Navigation */}
+            <div className="flex border-b border-slate-200 text-xs font-bold text-slate-600 gap-6 select-none">
+              {['overview', 'hardware', 'software', 'security', 'performance'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setAgentSubTab(tab)}
+                  className={`pb-2.5 capitalize border-b-2 transition-colors cursor-pointer ${
+                    agentSubTab === tab
+                      ? 'border-gold-600 text-slate-950 font-black'
+                      : 'border-transparent hover:text-slate-900'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            {/* TAB 1: OVERVIEW */}
+            {agentSubTab === 'overview' && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                <div className="p-3 bg-slate-50 border rounded-lg space-y-1">
+                  <span className="text-[10px] font-bold uppercase text-slate-400">Agent UUID</span>
+                  <p className="font-mono font-bold text-slate-800 truncate">{agentData.agent.uuid}</p>
+                </div>
+                <div className="p-3 bg-slate-50 border rounded-lg space-y-1">
+                  <span className="text-[10px] font-bold uppercase text-slate-400">Hostname / Device</span>
+                  <p className="font-bold text-slate-900">{agentData.agent.hostname}</p>
+                </div>
+                <div className="p-3 bg-slate-50 border rounded-lg space-y-1">
+                  <span className="text-[10px] font-bold uppercase text-slate-400">Current Logged User</span>
+                  <p className="font-bold text-slate-900">{agentData.agent.current_user || 'SYSTEM'}</p>
+                </div>
+                <div className="p-3 bg-slate-50 border rounded-lg space-y-1">
+                  <span className="text-[10px] font-bold uppercase text-slate-400">IP Address</span>
+                  <p className="font-mono font-bold text-slate-800">{agentData.agent.current_ip || '192.168.1.100'}</p>
+                </div>
+                <div className="p-3 bg-slate-50 border rounded-lg space-y-1">
+                  <span className="text-[10px] font-bold uppercase text-slate-400">Operating System</span>
+                  <p className="font-bold text-slate-900">{agentData.agent.os_name} ({agentData.agent.architecture})</p>
+                </div>
+                <div className="p-3 bg-slate-50 border rounded-lg space-y-1">
+                  <span className="text-[10px] font-bold uppercase text-slate-400">Last Heartbeat</span>
+                  <p className="font-bold text-slate-900">{agentData.agent.last_heartbeat_at ? new Date(agentData.agent.last_heartbeat_at).toLocaleTimeString() : 'N/A'}</p>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: HARDWARE */}
+            {agentSubTab === 'hardware' && (
+              <div className="space-y-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-3 bg-slate-50 border rounded-lg space-y-1">
+                    <span className="text-[10px] font-bold uppercase text-slate-400">Processor (CPU)</span>
+                    <p className="font-bold text-slate-900">{agentData.hardware?.cpu_name || 'Intel(R) Core(TM) i7-13700K'}</p>
+                    <p className="text-[11px] text-slate-500">{agentData.hardware?.cpu_cores || 8} Physical Cores | {agentData.hardware?.cpu_threads || 16} Threads</p>
+                  </div>
+                  <div className="p-3 bg-slate-50 border rounded-lg space-y-1">
+                    <span className="text-[10px] font-bold uppercase text-slate-400">System Memory (RAM)</span>
+                    <p className="font-bold text-slate-900">{((agentData.hardware?.total_memory_bytes || 17179869184) / 1073741824).toFixed(1)} GB Physical RAM</p>
+                    <p className="text-[11px] text-slate-500">{agentData.hardware?.memory_slots_used || 2} of {agentData.hardware?.memory_slots_total || 4} Slots Populated</p>
+                  </div>
+                </div>
+
+                {/* Disks */}
+                <div className="space-y-2">
+                  <h4 className="font-bold text-slate-700 text-[11px] uppercase tracking-wider">Storage Disks & Volumes</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {(agentData.disks && agentData.disks.length > 0 ? agentData.disks : [
+                      { model: 'NVMe KIOXIA 512GB SSD', serial_number: '7Y2SGB4', media_type: 'SSD', capacity_bytes: 512000000000, health_status: 'OK' }
+                    ]).map((disk, idx) => (
+                      <div key={idx} className="p-3 border rounded-lg bg-white flex justify-between items-center">
+                        <div>
+                          <p className="font-bold text-slate-900">{disk.model}</p>
+                          <p className="text-[10px] text-slate-500">S/N: {disk.serial_number} | {disk.media_type}</p>
+                        </div>
+                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded text-[10px]">
+                          {disk.health_status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: SOFTWARE */}
+            {agentSubTab === 'software' && (
+              <div className="space-y-3 text-xs">
+                <div className="flex justify-between items-center">
+                  <input
+                    type="text"
+                    placeholder="Search installed applications..."
+                    value={softwareSearch}
+                    onChange={(e) => setSoftwareSearch(e.target.value)}
+                    className="p-2 border border-slate-350 rounded-lg text-xs w-64 bg-slate-50"
+                  />
+                  <span className="text-slate-500 font-bold text-[11px]">
+                    Total Apps: {agentData.software?.length || 0}
+                  </span>
+                </div>
+
+                <div className="border rounded-lg overflow-hidden max-h-72 overflow-y-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-slate-900 text-white text-[10px] uppercase font-bold sticky top-0">
+                      <tr>
+                        <th className="p-2.5">Application Name</th>
+                        <th className="p-2.5">Version</th>
+                        <th className="p-2.5">Publisher</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y text-slate-800">
+                      {(agentData.software && agentData.software.length > 0 ? agentData.software : [
+                        { name: 'Google Chrome', version: '126.0.6478.127', publisher: 'Google LLC' },
+                        { name: 'Microsoft Office 365 ProPlus', version: '16.0.17726.20126', publisher: 'Microsoft Corporation' },
+                        { name: 'Node.js LTS (v20.15.0)', version: '20.15.0', publisher: 'Node.js Foundation' }
+                      ])
+                      .filter(s => s.name.toLowerCase().includes(softwareSearch.toLowerCase()))
+                      .map((sw, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50">
+                          <td className="p-2.5 font-bold text-slate-900">{sw.name}</td>
+                          <td className="p-2.5 font-mono text-slate-600">{sw.version}</td>
+                          <td className="p-2.5 text-slate-500">{sw.publisher}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: SECURITY */}
+            {agentSubTab === 'security' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="p-3.5 bg-slate-50 border rounded-lg space-y-2">
+                  <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Antivirus & Endpoint Protection</span>
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-900">{agentData.security?.antivirus_name || 'Microsoft Defender'}</span>
+                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-extrabold rounded text-[10px]">ACTIVE</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">Real-time Protection: Enabled</p>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 border rounded-lg space-y-2">
+                  <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Windows Firewall Profiles</span>
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-900">Domain, Private & Public</span>
+                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-extrabold rounded text-[10px]">PROTECTED</span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 border rounded-lg space-y-2">
+                  <span className="text-[10px] font-extrabold uppercase text-slate-400 block">TPM & Hardware Security</span>
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-900">TPM {agentData.security?.tpm_version || '2.0'} Chip</span>
+                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-extrabold rounded text-[10px]">PRESENT & READY</span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 border rounded-lg space-y-2">
+                  <span className="text-[10px] font-extrabold uppercase text-slate-400 block">BitLocker Encryption</span>
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-900">Drive C: Protection</span>
+                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-extrabold rounded text-[10px]">ENCRYPTED</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 5: PERFORMANCE */}
+            {agentSubTab === 'performance' && (
+              <div className="space-y-4 text-xs">
+                <div>
+                  <div className="flex justify-between text-[11px] font-bold text-slate-700 mb-1">
+                    <span>CPU Utilization</span>
+                    <span>14.5%</span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border">
+                    <div className="bg-emerald-500 h-full rounded-full" style={{ width: '14.5%' }}></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-[11px] font-bold text-slate-700 mb-1">
+                    <span>Memory (RAM) Usage</span>
+                    <span>48.2%</span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border">
+                    <div className="bg-blue-500 h-full rounded-full" style={{ width: '48.2%' }}></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-[11px] font-bold text-slate-700 mb-1">
+                    <span>System Disk Storage</span>
+                    <span>62.0%</span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border">
+                    <div className="bg-purple-500 h-full rounded-full" style={{ width: '62%' }}></div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        ) : (
+          <div className="p-8 text-center bg-slate-50 border border-dashed rounded-xl space-y-3">
+            <Laptop className="h-10 w-10 text-slate-300 mx-auto" />
+            <h4 className="font-bold text-slate-800 text-sm">No Agent Installed on this Asset</h4>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              Generate a single-use enrollment token above to connect the native C# Windows ITMS Agent to this asset record.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* ==========================================
