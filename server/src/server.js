@@ -32,9 +32,14 @@ app.use(helmet({
 }));
 
 const corsOptions = {
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || origin.includes('nkbmanufacturing.com') || origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('192.168.')) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Agent-UUID', 'X-Agent-Key'],
   credentials: true
 };
 app.use(cors(corsOptions));
