@@ -3,7 +3,7 @@ import {
   Monitor, ShieldAlert, ShieldCheck, Power, Terminal as TerminalIcon, 
   Folder, Cpu, Wrench, Package, Calendar, Clock, Lock, Shield, Download, 
   FileText, Settings, RefreshCw, CheckCircle2, AlertTriangle, Play, Square,
-  CheckSquare, XCircle, Search, Filter, Radio, ChevronRight, User, Eye, Activity
+  CheckSquare, XCircle, Search, Filter, Radio, ChevronRight, User, Eye, Activity, Globe
 } from 'lucide-react';
 import api from '../services/api';
 import { getSocket } from '../services/socket';
