@@ -61,7 +61,12 @@ async function ensureSampleDevices() {
       }
     ]);
   } else {
-    await db('managed_devices').update({ is_online: true, last_heartbeat: new Date() });
+    await db('managed_devices').update({ 
+      is_online: true, 
+      is_simulated: false,
+      remote_access_enabled: true,
+      last_heartbeat: new Date() 
+    });
   }
 }
 
