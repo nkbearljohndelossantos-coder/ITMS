@@ -37,20 +37,32 @@ async function verifyReauthToken(userId, deviceId, actionType, tokenString) {
   return true;
 }
 
-async function reconcileDeviceStatuses() {
-  try {
-    // Keep active registered IT Assets online for remote management
-    await db('managed_devices').update({ is_online: true });
-  } catch (err) {
-    logger.error(`Reconcile device statuses error: ${err.message}`);
-  }
-}
-
 async function ensureSampleDevices() {
   await syncAssetsToManagedDevices();
-  // Clean up legacy demo devices not linked to IT Assets
-  await db('managed_devices').whereNull('asset_id').del();
-  await reconcileDeviceStatuses();
+
+  const count = await db('managed_devices').count('id as count').first();
+  if (parseInt(count.count) === 0) {
+    await db('managed_devices').insert([
+      {
+        device_id: 'AST-DELL-PRO14',
+        name: 'DELL PRO 14 PC14250 (DESKTOP-5U6CPQ8)',
+        ip_address: '192.168.137.49',
+        mac_address: '74:56:3C:99:10:10',
+        os_name: 'Windows 11 Pro 22H2',
+        os_version: '10.0.22621',
+        logged_in_user: 'DESKTOP-5U6CPQ8\\DELL',
+        agent_version: 'v1.2.4',
+        is_online: true,
+        remote_access_enabled: true,
+        protected_status: false,
+        approved_access_mode: 'attended',
+        is_simulated: false,
+        last_heartbeat: new Date()
+      }
+    ]);
+  } else {
+    await db('managed_devices').update({ is_online: true, last_heartbeat: new Date() });
+  }
 }
 
 // 1. Dashboard Summary & Telemetry Counters
