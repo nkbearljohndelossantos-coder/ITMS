@@ -218,38 +218,25 @@ export default function RemoteManagement() {
     });
   };
 
-  const handleLaunchDesktop = (mode) => {
+  const handleLaunchDesktop = (mode = 'unattended') => {
     if (!selectedDevice) return;
-    if (!selectedDevice.is_online) {
-      alert(`⚠️ Cannot establish Remote Session: ${selectedDevice.name} is currently OFFLINE.\n\nRemote Desktop connection requires the target workstation to be powered on and connected to the network with NKB Agent active.`);
-      return;
-    }
     const actionKey = mode === 'unattended' ? 'UNATTENDED_ACCESS' : 'REMOTE_DESKTOP';
     const executeLaunch = (token) => {
-      if (mode === 'attended') {
-        api.post('/remote/requests', {
-          device_id: selectedDevice.device_id,
-          access_type: 'full_control',
-          reason: 'IT Remote Support Assistance'
-        }).then(res => {
-          if (res.data.success) {
-            alert(`Attended Access Request sent to ${selectedDevice.name}!\n\nThe Employee Consent Prompt modal has popped up on the employee's computer screen. Once they click 'Allow Connection', your remote session will open automatically.`);
+      api.post('/remote/sessions/launch', {
+        device_id: selectedDevice.device_id,
+        access_mode: mode,
+        connection_type: 'Full Control',
+        reauth_token: token
+      }).then(res => {
+        if (res.data.success) {
+          setActiveModalSession(res.data.data);
+          if (res.data.data?.sessionUrl) {
+            window.open(res.data.data.sessionUrl, '_blank');
           }
-        }).catch(err => {
-          console.error(err);
-        });
-      } else {
-        api.post('/remote/sessions/launch', {
-          device_id: selectedDevice.device_id,
-          access_mode: mode,
-          connection_type: 'Full Control',
-          reauth_token: token
-        }).then(res => {
-          if (res.data.success) {
-            setActiveModalSession(res.data.data);
-          }
-        });
-      }
+        }
+      }).catch(err => {
+        console.error('Launch desktop error:', err);
+      });
     };
 
     if (mode === 'unattended') {

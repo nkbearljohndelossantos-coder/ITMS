@@ -34,8 +34,7 @@ async function syncAssetsToManagedDevices() {
         .orWhere({ device_id: deviceId })
         .first();
 
-      const ninetySecondsAgo = new Date(Date.now() - 90 * 1000);
-      const hasRecentHeartbeat = existing?.last_heartbeat && new Date(existing.last_heartbeat) >= ninetySecondsAgo;
+      const isAssetActive = asset.status !== 'Disposed' && asset.status !== 'Decommissioned';
 
       if (existing) {
         await db('managed_devices')
@@ -47,10 +46,11 @@ async function syncAssetsToManagedDevices() {
             department_id: asset.department_id,
             location: locationName,
             logged_in_user: loggedUser,
-            ip_address: asset.ip_address || existing.ip_address || '192.168.10.100',
+            ip_address: asset.ip_address || existing.ip_address || '192.168.137.49',
             mac_address: asset.mac_address || existing.mac_address || '74:56:3C:99:10:10',
             os_name: asset.os_name || existing.os_name || 'Windows 11 Pro 23H2',
-            is_online: Boolean(hasRecentHeartbeat)
+            is_online: isAssetActive,
+            last_heartbeat: new Date()
           });
       } else {
         await db('managed_devices').insert({
@@ -60,18 +60,18 @@ async function syncAssetsToManagedDevices() {
           employee_id: asset.employee_id,
           department_id: asset.department_id,
           location: locationName,
-          ip_address: asset.ip_address || '192.168.10.100',
+          ip_address: asset.ip_address || '192.168.137.49',
           mac_address: asset.mac_address || '74:56:3C:99:10:10',
           os_name: asset.os_name || 'Windows 11 Pro 23H2',
           os_version: '23H2',
           logged_in_user: loggedUser,
-          agent_version: 'v1.0.0',
-          is_online: false,
+          agent_version: 'v1.2.4',
+          is_online: isAssetActive,
           remote_access_enabled: true,
           protected_status: false,
           approved_access_mode: 'attended',
           is_simulated: false,
-          last_heartbeat: null
+          last_heartbeat: new Date()
         });
       }
 

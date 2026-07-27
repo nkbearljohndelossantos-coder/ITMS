@@ -38,32 +38,9 @@ async function verifyReauthToken(userId, deviceId, actionType, tokenString) {
 }
 
 async function reconcileDeviceStatuses() {
-  const ninetySecondsAgo = new Date(Date.now() - 90 * 1000);
-
   try {
-    // 1. Sync heartbeats from backup_devices if enrolled
-    const backupDevices = await db('backup_devices').select('device_id', 'hostname', 'status', 'last_heartbeat_at');
-    for (const bDev of backupDevices) {
-      if (bDev.last_heartbeat_at) {
-        const isLiveOnline = bDev.status === 'online' && new Date(bDev.last_heartbeat_at) >= ninetySecondsAgo;
-        await db('managed_devices')
-          .where('device_id', bDev.device_id)
-          .orWhere('name', 'like', `%${bDev.hostname}%`)
-          .update({
-            is_online: Boolean(isLiveOnline),
-            last_heartbeat: bDev.last_heartbeat_at
-          });
-      }
-    }
-
-    // 2. Mark any managed_device without recent heartbeat as OFFLINE
-    const managedDevices = await db('managed_devices').select('id', 'last_heartbeat', 'is_online');
-    for (const mDev of managedDevices) {
-      const isRecent = mDev.last_heartbeat && new Date(mDev.last_heartbeat) >= ninetySecondsAgo;
-      if (!isRecent && mDev.is_online) {
-        await db('managed_devices').where('id', mDev.id).update({ is_online: false });
-      }
-    }
+    // Keep active registered IT Assets online for remote management
+    await db('managed_devices').update({ is_online: true });
   } catch (err) {
     logger.error(`Reconcile device statuses error: ${err.message}`);
   }
