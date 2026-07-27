@@ -177,15 +177,29 @@ export default function ImageZoomModal({ isOpen, src, title = 'Image Preview', o
   );
 }
 
+export function getImageUrl(src) {
+  if (!src || src === 'null' || src === 'undefined') return '';
+  if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:')) {
+    return src;
+  }
+  const cleanPath = src.startsWith('/') ? src : `/${src}`;
+  if (typeof window !== 'undefined' && window.location.port === '5173') {
+    return `http://localhost:5000${cleanPath}`;
+  }
+  return cleanPath;
+}
+
 export function ZoomableImage({ src, alt, className = '', containerClassName = '', fallbackIcon: FallbackIcon }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [hasError, setHasError] = useState(false);
 
+  const resolvedUrl = getImageUrl(src);
+
   useEffect(() => {
     setHasError(false);
-  }, [src]);
+  }, [src, resolvedUrl]);
 
-  if (!src || hasError) {
+  if (!resolvedUrl || hasError) {
     if (FallbackIcon) {
       return <FallbackIcon className={className} />;
     }
@@ -204,7 +218,7 @@ export function ZoomableImage({ src, alt, className = '', containerClassName = '
         title="Click to view full image details"
       >
         <img 
-          src={src} 
+          src={resolvedUrl} 
           alt={alt || 'Image'} 
           className={`transition-transform duration-300 group-hover:scale-105 ${className}`}
           onError={() => setHasError(true)}
@@ -216,7 +230,7 @@ export function ZoomableImage({ src, alt, className = '', containerClassName = '
 
       <ImageZoomModal 
         isOpen={modalOpen} 
-        src={src} 
+        src={resolvedUrl} 
         title={alt || 'Asset Image Preview'} 
         onClose={() => setModalOpen(false)} 
       />
