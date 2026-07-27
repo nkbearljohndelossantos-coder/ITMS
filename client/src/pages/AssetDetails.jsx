@@ -278,13 +278,33 @@ export default function AssetDetails() {
     return asset.description || asset.remarks || '';
   };
 
+  const getAssignedToText = () => {
+    if (!asset) return 'UNASSIGNED / IN STOCK';
+    if (activeAssignment?.employee_name) {
+      return activeAssignment.employee_name;
+    }
+    if (activeAssignment?.department_name) {
+      return `${activeAssignment.department_name} (Department)`;
+    }
+    if (asset.employee_name) {
+      return asset.employee_name;
+    }
+    if (asset.department_name) {
+      return `${asset.department_name} (Department)`;
+    }
+    if (asset.employee_first_name) {
+      return `${asset.employee_first_name} ${asset.employee_last_name || ''}`.trim();
+    }
+    return 'UNASSIGNED / IN STOCK';
+  };
+
   const handlePrintSticker = () => {
     if (!asset) return;
     const printWindow = window.open('', '_blank');
     const logoUrl = `${window.location.origin}/nkb-logo.png`;
     const modelText = getAssetModelText();
     const specsText = getAssetSpecsText();
-    const locationText = asset.current_location || 'Nkb Manufacturing Sampaguita Village 2, Mambog 2, B4 L5, Twig St, Bacoor, 4102 Cavite';
+    const assignedToText = getAssignedToText();
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -500,8 +520,8 @@ export default function AssetDetails() {
               </div>
 
               <div class="location-row">
-                <span class="location-title">LOCATION:</span>
-                <span class="location-text">${locationText}</span>
+                <span class="location-title">ASSIGNED TO:</span>
+                <span class="location-text">${assignedToText.toUpperCase()}</span>
               </div>
             </div>
 
@@ -1172,11 +1192,11 @@ export default function AssetDetails() {
                     </div>
                   </div>
 
-                  {/* Location */}
+                  {/* Assigned To */}
                   <div className="border-t border-black/80 pt-1 text-[8.5px] leading-tight truncate">
-                    <span className="font-black mr-1 uppercase">LOCATION:</span>
-                    <span className="font-semibold text-slate-800">
-                      {asset.current_location || 'Nkb Manufacturing Sampaguita Village 2, Mambog 2, B4 L5, Twig St, Bacoor, 4102 Cavite'}
+                    <span className="font-black mr-1 uppercase">ASSIGNED TO:</span>
+                    <span className="font-bold text-black uppercase">
+                      {getAssignedToText()}
                     </span>
                   </div>
                 </div>
