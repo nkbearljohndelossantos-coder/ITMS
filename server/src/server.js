@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const fs = require('fs');
 const logger = require('./utils/logger');
 const socketUtil = require('./utils/socket');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
@@ -120,11 +121,14 @@ app.use(express.static(distPath));
 
 // Wildcard fallback for React Router SPA (Single Page Application)
 app.get('*', (req, res, next) => {
-  // Exclude API calls from wildcard fallback
-  if (req.url.startsWith('/api')) {
+  if (req.url.startsWith('/api') || req.url.startsWith('/uploads')) {
     return next();
   }
-  res.sendFile(path.join(distPath, 'index.html'));
+  const indexPath = path.join(distPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  return res.status(404).send('SPA index.html not found. Please run client build.');
 });
 
 // 8. Centralized Global Error Handler
