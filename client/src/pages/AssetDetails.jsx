@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { ZoomableImage } from '../components/ImageZoomModal';
+import { optimizeImageQuality } from '../utils/imageOptimizer';
 
 export default function AssetDetails() {
   const { id } = useParams();
@@ -1406,7 +1407,12 @@ export default function AssetDetails() {
                             accept="image/*" 
                             capture="environment" 
                             className="hidden" 
-                            onChange={e => e.target.files[0] && setEditUploadImage(e.target.files[0])} 
+                            onChange={async (e) => {
+                              if (e.target.files[0]) {
+                                const opt = await optimizeImageQuality(e.target.files[0]);
+                                setEditUploadImage(opt);
+                              }
+                            }} 
                           />
                         </label>
 
@@ -1417,7 +1423,12 @@ export default function AssetDetails() {
                             type="file" 
                             accept="image/*" 
                             className="hidden" 
-                            onChange={e => e.target.files[0] && setEditUploadImage(e.target.files[0])} 
+                            onChange={async (e) => {
+                              if (e.target.files[0]) {
+                                const opt = await optimizeImageQuality(e.target.files[0]);
+                                setEditUploadImage(opt);
+                              }
+                            }} 
                           />
                         </label>
                       </div>

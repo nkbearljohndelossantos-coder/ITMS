@@ -7,6 +7,7 @@ import {
   Wrench, CheckCircle, HelpCircle, ShieldAlert, X, ZoomIn, Camera, Upload
 } from 'lucide-react';
 import ImageZoomModal from '../components/ImageZoomModal';
+import { optimizeImageQuality } from '../utils/imageOptimizer';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -608,7 +609,12 @@ export default function Assets() {
                             accept="image/*" 
                             capture="environment" 
                             className="hidden" 
-                            onChange={e => e.target.files[0] && setUploadImage(e.target.files[0])} 
+                            onChange={async (e) => {
+                              if (e.target.files[0]) {
+                                const opt = await optimizeImageQuality(e.target.files[0]);
+                                setUploadImage(opt);
+                              }
+                            }} 
                           />
                         </label>
 
@@ -619,7 +625,12 @@ export default function Assets() {
                             type="file" 
                             accept="image/*" 
                             className="hidden" 
-                            onChange={e => e.target.files[0] && setUploadImage(e.target.files[0])} 
+                            onChange={async (e) => {
+                              if (e.target.files[0]) {
+                                const opt = await optimizeImageQuality(e.target.files[0]);
+                                setUploadImage(opt);
+                              }
+                            }} 
                           />
                         </label>
                       </div>
