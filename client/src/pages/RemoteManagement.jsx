@@ -230,9 +230,7 @@ export default function RemoteManagement() {
       }).then(res => {
         if (res.data.success) {
           setActiveModalSession(res.data.data);
-          if (res.data.data?.sessionUrl) {
-            window.open(res.data.data.sessionUrl, '_blank');
-          }
+          setActiveTab('desktop');
         }
       }).catch(err => {
         console.error('Launch desktop error:', err);
