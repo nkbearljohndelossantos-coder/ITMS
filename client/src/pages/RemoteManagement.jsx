@@ -181,6 +181,11 @@ export default function RemoteManagement() {
   };
 
   const handleExecuteTerminal = (token) => {
+    if (!selectedDevice) return;
+    if (!selectedDevice.is_online) {
+      alert(`⚠️ Cannot execute commands: ${selectedDevice.name} is currently OFFLINE.\n\nPlease verify that the target machine is powered on and connected to the network.`);
+      return;
+    }
     if (!terminalCmd.trim()) return;
     setTerminalLogs(prev => [...prev, `PS C:\\> ${terminalCmd}`]);
     api.post('/remote/terminal/execute', {
@@ -196,6 +201,11 @@ export default function RemoteManagement() {
   };
 
   const handlePowerAction = (commandType) => {
+    if (!selectedDevice) return;
+    if (commandType !== 'wol' && !selectedDevice.is_online) {
+      alert(`⚠️ Cannot execute power command: ${selectedDevice.name} is currently OFFLINE.\n\nUse Wake-on-LAN (WOL) to send a magic packet to boot up an offline machine.`);
+      return;
+    }
     triggerPrivilegedAction(`POWER_${commandType.toUpperCase()}`, (token) => {
       api.post('/remote/power/command', {
         device_id: selectedDevice.device_id,
@@ -209,6 +219,11 @@ export default function RemoteManagement() {
   };
 
   const handleLaunchDesktop = (mode) => {
+    if (!selectedDevice) return;
+    if (!selectedDevice.is_online) {
+      alert(`⚠️ Cannot establish Remote Session: ${selectedDevice.name} is currently OFFLINE.\n\nRemote Desktop connection requires the target workstation to be powered on and connected to the network with NKB Agent active.`);
+      return;
+    }
     const actionKey = mode === 'unattended' ? 'UNATTENDED_ACCESS' : 'REMOTE_DESKTOP';
     const executeLaunch = (token) => {
       if (mode === 'attended') {

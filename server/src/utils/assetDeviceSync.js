@@ -34,6 +34,9 @@ async function syncAssetsToManagedDevices() {
         .orWhere({ device_id: deviceId })
         .first();
 
+      const ninetySecondsAgo = new Date(Date.now() - 90 * 1000);
+      const hasRecentHeartbeat = existing?.last_heartbeat && new Date(existing.last_heartbeat) >= ninetySecondsAgo;
+
       if (existing) {
         await db('managed_devices')
           .where({ id: existing.id })
@@ -44,10 +47,10 @@ async function syncAssetsToManagedDevices() {
             department_id: asset.department_id,
             location: locationName,
             logged_in_user: loggedUser,
-            ip_address: asset.ip_address || existing.ip_address || `192.168.10.${100 + (asset.id % 150)}`,
-            mac_address: asset.mac_address || existing.mac_address || `74:56:3C:99:${(asset.id % 90 + 10)}:${(asset.id % 80 + 10)}`,
+            ip_address: asset.ip_address || existing.ip_address || '192.168.10.100',
+            mac_address: asset.mac_address || existing.mac_address || '74:56:3C:99:10:10',
             os_name: asset.os_name || existing.os_name || 'Windows 11 Pro 23H2',
-            is_online: asset.status !== 'Disposed' && asset.status !== 'Decommissioned'
+            is_online: Boolean(hasRecentHeartbeat)
           });
       } else {
         await db('managed_devices').insert({
@@ -57,18 +60,18 @@ async function syncAssetsToManagedDevices() {
           employee_id: asset.employee_id,
           department_id: asset.department_id,
           location: locationName,
-          ip_address: asset.ip_address || `192.168.10.${100 + (asset.id % 150)}`,
-          mac_address: asset.mac_address || `74:56:3C:99:${(asset.id % 90 + 10)}:${(asset.id % 80 + 10)}`,
+          ip_address: asset.ip_address || '192.168.10.100',
+          mac_address: asset.mac_address || '74:56:3C:99:10:10',
           os_name: asset.os_name || 'Windows 11 Pro 23H2',
           os_version: '23H2',
           logged_in_user: loggedUser,
-          agent_version: 'v1.2.4',
-          is_online: asset.status !== 'Disposed' && asset.status !== 'Decommissioned',
+          agent_version: 'v1.0.0',
+          is_online: false,
           remote_access_enabled: true,
           protected_status: false,
           approved_access_mode: 'attended',
-          is_simulated: true,
-          last_heartbeat: new Date()
+          is_simulated: false,
+          last_heartbeat: null
         });
       }
 
