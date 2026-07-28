@@ -173,8 +173,16 @@ router.post('/', authenticateToken, requirePermission('assets.create'), uploadIm
       // 1. Generate unique asset code
       const assetCode = await getNextNumber('Asset', trx);
 
-      // 2. Prepare file upload path
-      const imagePath = req.file ? `/uploads/images/${req.file.filename}` : null;
+      // 2. Prepare file upload path (Store Base64 in DB for 100% permanent preservation on Hostinger)
+      let imagePath = null;
+      if (req.file) {
+        try {
+          const fileBuffer = fs.readFileSync(req.file.path);
+          imagePath = `data:${req.file.mimetype || 'image/jpeg'};base64,${fileBuffer.toString('base64')}`;
+        } catch (e) {
+          imagePath = `/uploads/images/${req.file.filename}`;
+        }
+      }
 
       // 3. QR code text payload
       const qrText = `NKB-ITMS:ASSET:${assetCode}`;
@@ -327,7 +335,12 @@ router.put('/:id', authenticateToken, requirePermission('assets.update'), upload
 
     let newImagePath = oldAsset.image_path;
     if (req.file) {
-      newImagePath = `/uploads/images/${req.file.filename}`;
+      try {
+        const fileBuffer = fs.readFileSync(req.file.path);
+        newImagePath = `data:${req.file.mimetype || 'image/jpeg'};base64,${fileBuffer.toString('base64')}`;
+      } catch (e) {
+        newImagePath = `/uploads/images/${req.file.filename}`;
+      }
     } else if (assetData.image_path && assetData.image_path !== 'null' && assetData.image_path !== 'undefined' && String(assetData.image_path).trim() !== '') {
       newImagePath = assetData.image_path;
     }
