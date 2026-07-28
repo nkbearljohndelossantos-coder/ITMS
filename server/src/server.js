@@ -174,6 +174,18 @@ if (process.env.NODE_ENV !== 'test') {
         logger.info('Database already contains data. Skipping seeds to protect data.');
       }
       
+      // Clean up legacy non-existent file paths to prevent broken <img> rendering
+      try {
+        const assets = await db('assets').select('id', 'name', 'image_path');
+        for (const asset of assets) {
+          if (asset.image_path && !asset.image_path.startsWith('data:') && !asset.image_path.startsWith('http') && !fs.existsSync(path.join(__dirname, '..', asset.image_path))) {
+            await db('assets').where('id', asset.id).update({ image_path: null });
+          }
+        }
+      } catch (e) {
+        logger.error(`Image path cleanup error: ${e.message}`);
+      }
+      
       server.listen(PORT, () => {
         logger.info(`Server is running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
       });

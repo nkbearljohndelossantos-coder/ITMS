@@ -44,6 +44,48 @@ const assetSchema = z.object({
   remarks: z.string().optional()
 });
 
+function AssetCardImage({ src, name, onZoom }) {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [src]);
+
+  if (!src || src === 'null' || src === 'undefined' || hasError) {
+    return (
+      <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 flex flex-col items-center justify-center p-3 text-slate-300 space-y-1">
+        <Laptop className="h-10 w-10 text-gold-400 opacity-90 drop-shadow" />
+        <span className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400">
+          Hardware Asset
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <img 
+        src={src} 
+        alt={name || 'Asset Image'} 
+        onError={() => setHasError(true)}
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
+      />
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onZoom(src, name);
+        }}
+        className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white gap-1 text-xs font-bold cursor-zoom-in"
+        title="Click to zoom picture details"
+      >
+        <ZoomIn className="h-5 w-5 drop-shadow" />
+        <span>Zoom Details</span>
+      </button>
+    </>
+  );
+}
+
 export default function Assets() {
   const { hasPermission, showToast } = useAuth();
   const navigate = useNavigate();
@@ -311,30 +353,14 @@ export default function Assets() {
             >
               {/* Card top banner with photo/placeholder */}
               <div className="h-32 bg-slate-950/5 relative flex items-center justify-center border-b border-slate-100 group/img">
-                {asset.image_path ? (
-                  <>
-                    <img 
-                      src={asset.image_path} 
-                      alt={asset.name} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
-                    />
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPreviewImage(asset.image_path);
-                        setPreviewTitle(asset.name);
-                      }}
-                      className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white gap-1 text-xs font-bold cursor-zoom-in"
-                      title="Click to zoom picture details"
-                    >
-                      <ZoomIn className="h-5 w-5 drop-shadow" />
-                      <span>Zoom Details</span>
-                    </button>
-                  </>
-                ) : (
-                  <Laptop className="h-12 w-12 text-slate-300" />
-                )}
+                <AssetCardImage 
+                  src={asset.image_path} 
+                  name={asset.name} 
+                  onZoom={(s, n) => {
+                    setPreviewImage(s);
+                    setPreviewTitle(n);
+                  }}
+                />
                 {/* Status sticker */}
                 <span className={`absolute top-3 right-3 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
                   asset.status === 'Available' ? 'bg-emerald-500 text-white shadow' :

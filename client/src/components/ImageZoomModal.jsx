@@ -204,8 +204,8 @@ export function ZoomableImage({ src, alt, className = '', containerClassName = '
       return <FallbackIcon className={className} />;
     }
     return (
-      <div className={`bg-slate-100 flex items-center justify-center text-slate-400 font-mono text-[10px] ${containerClassName || className}`}>
-        No Image
+      <div className={`bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 flex items-center justify-center text-slate-300 p-2 ${containerClassName || className}`}>
+        <Laptop className="h-8 w-8 text-gold-400 drop-shadow" />
       </div>
     );
   }

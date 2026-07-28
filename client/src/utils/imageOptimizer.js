@@ -91,3 +91,16 @@ export async function optimizeImageQuality(file, maxWidth = 1920, maxHeight = 19
     }
   });
 }
+
+/**
+ * Converts a File object into a Data URI Base64 string.
+ */
+export function convertFileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) return resolve(null);
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+}
