@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { ZoomableImage } from '../components/ImageZoomModal';
-import { optimizeImageQuality } from '../utils/imageOptimizer';
+import { optimizeImageQuality, convertFileToBase64 } from '../utils/imageOptimizer';
 
 export default function AssetDetails() {
   const { id } = useParams();
@@ -260,6 +260,12 @@ export default function AssetDetails() {
     formData.delete('image_path');
 
     if (editUploadImage) {
+      try {
+        const base64Uri = await convertFileToBase64(editUploadImage);
+        formData.append('image_path', base64Uri);
+      } catch (err) {
+        // fallback
+      }
       formData.append('image', editUploadImage);
     } else if (asset && asset.image_path) {
       formData.append('image_path', asset.image_path);

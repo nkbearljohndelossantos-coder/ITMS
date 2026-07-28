@@ -182,6 +182,10 @@ router.post('/', authenticateToken, requirePermission('assets.create'), uploadIm
         } catch (e) {
           imagePath = `/uploads/images/${req.file.filename}`;
         }
+      } else if (req.body.image_path && String(req.body.image_path).startsWith('data:image/')) {
+        imagePath = req.body.image_path;
+      } else if (req.body.image && String(req.body.image).startsWith('data:image/')) {
+        imagePath = req.body.image;
       }
 
       // 3. QR code text payload
@@ -341,6 +345,10 @@ router.put('/:id', authenticateToken, requirePermission('assets.update'), upload
       } catch (e) {
         newImagePath = `/uploads/images/${req.file.filename}`;
       }
+    } else if (req.body.image_path && String(req.body.image_path).startsWith('data:image/')) {
+      newImagePath = req.body.image_path;
+    } else if (req.body.image && String(req.body.image).startsWith('data:image/')) {
+      newImagePath = req.body.image;
     } else if (assetData.image_path && assetData.image_path !== 'null' && assetData.image_path !== 'undefined' && String(assetData.image_path).trim() !== '') {
       newImagePath = assetData.image_path;
     }

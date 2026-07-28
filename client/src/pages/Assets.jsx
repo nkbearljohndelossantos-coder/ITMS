@@ -221,6 +221,12 @@ export default function Assets() {
     });
 
     if (uploadImage) {
+      try {
+        const base64Uri = await convertFileToBase64(uploadImage);
+        formData.append('image_path', base64Uri);
+      } catch (e) {
+        // fallback
+      }
       formData.append('image', uploadImage);
     } else if (editingAsset && editingAsset.image_path) {
       formData.append('image_path', editingAsset.image_path);
