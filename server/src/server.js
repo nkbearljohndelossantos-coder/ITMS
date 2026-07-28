@@ -124,6 +124,7 @@ app.use('/api/websites', require('./routes/websites'));
 app.use('/api/secrets', require('./routes/secrets'));
 app.use('/api/remote', require('./routes/remoteManagement'));
 app.use('/api/v1/agent', require('./routes/agentApi'));
+app.use('/api/v1/webfilter', require('./routes/webFiltering'));
 
 // 7. Serve Static Frontend files
 const distPath = path.join(__dirname, '../../client/dist');

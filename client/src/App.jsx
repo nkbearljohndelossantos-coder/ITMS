@@ -30,6 +30,7 @@ import FileShares from './pages/FileShares';
 import GuestWifi from './pages/GuestWifi';
 import Websites from './pages/Websites';
 import RemoteManagement from './pages/RemoteManagement';
+import WebFiltering from './pages/WebFiltering';
 import Employees from './pages/Employees';
 import Reports from './pages/Reports';
 import AuditLogs from './pages/AuditLogs';
@@ -230,6 +231,11 @@ export default function App() {
             <Route path="remote-management" element={
               <PermissionRoute permission="remote_device.view">
                 <RemoteManagement />
+              </PermissionRoute>
+            } />
+            <Route path="web-filtering" element={
+              <PermissionRoute permission="assets.view">
+                <WebFiltering />
               </PermissionRoute>
             } />
 
