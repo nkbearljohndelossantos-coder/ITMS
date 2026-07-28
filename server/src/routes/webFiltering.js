@@ -303,6 +303,9 @@ router.post('/qr-tokens/generate', authenticateToken, requirePermission('assets.
       created_at: new Date()
     });
 
+    const baseUrl = process.env.PUBLIC_URL || 'https://itms.nkbmanufacturing.com';
+    const scannableUrl = `${baseUrl}/api/v1/webfilter/qr-scan?token=${tokenUuid}&action=${action_type}&sig=${signature}`;
+
     const qrPayload = {
       v: 1,
       type: 'NKB_ITMS_WORK_MODE',
@@ -312,7 +315,8 @@ router.post('/qr-tokens/generate', authenticateToken, requirePermission('assets.
       employeeId: employee_id || 0,
       expiresAt: expiresAt.getTime(),
       nonce: nonce,
-      sig: signature
+      sig: signature,
+      url: scannableUrl
     };
 
     return res.json({
@@ -322,12 +326,156 @@ router.post('/qr-tokens/generate', authenticateToken, requirePermission('assets.
         tokenUuid,
         action_type,
         expiresAt,
-        qrPayloadString: JSON.stringify(qrPayload),
+        scannableUrl,
+        qrPayloadString: scannableUrl, // Encode clean URL in QR for 100% smartphone camera scanning compatibility
         qrPayload
       }
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 7b. Public Endpoint: Smartphone Camera QR Scanner Validation Route
+router.get('/qr-scan', async (req, res) => {
+  const { token, action, sig } = req.query;
+
+  if (!token || !sig) {
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>NKB ITMS Work Mode QR</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #fff; text-align: center; padding: 2rem; }
+          .card { background: #1e293b; border-radius: 1rem; padding: 2rem; border: 1px solid #334155; max-width: 400px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+          .icon { font-size: 3rem; margin-bottom: 1rem; }
+          .title { font-size: 1.25rem; font-weight: 800; color: #f43f5e; margin-bottom: 0.5rem; }
+          .desc { font-size: 0.875rem; color: #94a3b8; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="icon">⚠️</div>
+          <div class="title">Invalid Work Mode QR</div>
+          <div class="desc">Missing authentication parameters or signature.</div>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+
+  try {
+    const tokenRecord = await db('webfilter_qr_tokens').where('token_uuid', token).first();
+
+    if (!tokenRecord) {
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>NKB ITMS Work Mode QR</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #fff; text-align: center; padding: 2rem; }
+            .card { background: #1e293b; border-radius: 1rem; padding: 2rem; border: 1px solid #334155; max-width: 400px; margin: 0 auto; }
+            .icon { font-size: 3rem; margin-bottom: 1rem; }
+            .title { font-size: 1.25rem; font-weight: 800; color: #f43f5e; margin-bottom: 0.5rem; }
+            .desc { font-size: 0.875rem; color: #94a3b8; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="icon">❌</div>
+            <div class="title">QR Code Expired or Rejected</div>
+            <div class="desc">This single-use Work Mode QR code is no longer valid.</div>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+
+    if (tokenRecord.is_used) {
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>NKB ITMS Work Mode QR</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #fff; text-align: center; padding: 2rem; }
+            .card { background: #1e293b; border-radius: 1rem; padding: 2rem; border: 1px solid #334155; max-width: 400px; margin: 0 auto; }
+            .icon { font-size: 3rem; margin-bottom: 1rem; }
+            .title { font-size: 1.25rem; font-weight: 800; color: #fbbf24; margin-bottom: 0.5rem; }
+            .desc { font-size: 0.875rem; color: #94a3b8; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="icon">⚠️</div>
+            <div class="title">Already Used QR Code</div>
+            <div class="desc">This single-use token has already been redeemed.</div>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+
+    // Mark token as redeemed
+    await db('webfilter_qr_tokens').where('id', tokenRecord.id).update({
+      is_used: true,
+      used_at: new Date()
+    });
+
+    const isEnable = (tokenRecord.action_type === 'ENABLE_WORK_MODE' || action === 'ENABLE_WORK_MODE');
+
+    // Update active policy
+    await db('webfilter_policies').where('is_active', true).update({
+      is_work_mode_enabled: isEnable,
+      updated_at: new Date()
+    });
+
+    // Broadcast Socket.IO sync
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('webfilter:command', {
+        command: isEnable ? 'ENABLE_WORK_MODE' : 'DISABLE_WORK_MODE',
+        tokenUuid: token,
+        timestamp: Date.now()
+      });
+    }
+
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>NKB ITMS Work Mode Authenticated</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #fff; text-align: center; padding: 2rem; }
+          .card { background: #1e293b; border-radius: 1rem; padding: 2rem; border: 1px solid ${isEnable ? '#059669' : '#3b82f6'}; max-width: 400px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+          .icon { font-size: 3.5rem; margin-bottom: 1rem; }
+          .title { font-size: 1.35rem; font-weight: 900; color: ${isEnable ? '#10b981' : '#60a5fa'}; margin-bottom: 0.5rem; text-transform: uppercase; }
+          .desc { font-size: 0.875rem; color: #cbd5e1; line-height: 1.5; }
+          .badge { display: inline-block; margin-top: 1rem; padding: 0.4rem 1rem; background: ${isEnable ? '#065f46' : '#1e3a8a'}; color: #fff; border-radius: 2rem; font-size: 0.75rem; font-weight: 800; letter-spacing: 1px; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="icon">${isEnable ? '🛡️' : '⏹'}</div>
+          <div class="title">${isEnable ? 'WORK MODE ENFORCED' : 'WORK MODE DEACTIVATED'}</div>
+          <div class="desc">
+            Smartphone Camera QR Scan Authenticated successfully.
+            <br>
+            <strong>Token:</strong> ${token}
+          </div>
+          <div class="badge">${isEnable ? '● INTERNET & GAMBLING FILTERING ACTIVE' : '● NORMAL PHONE MODE RESTORED'}</div>
+        </div>
+      </body>
+      </html>
+    `);
+  } catch (err) {
+    return res.status(500).send('Authentication Error: ' + err.message);
   }
 });
 

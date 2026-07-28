@@ -164,7 +164,7 @@ export default function WebFiltering() {
   // Download PNG QR Code Image helper
   const downloadQRCodeImage = async (qrDataObj, actionType, tokenUuid) => {
     try {
-      const qrDataString = JSON.stringify(qrDataObj);
+      const qrDataString = typeof qrDataObj === 'string' ? qrDataObj : (qrDataObj?.url || qrDataObj?.scannableUrl || JSON.stringify(qrDataObj));
       const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrDataString)}`;
       const response = await fetch(qrApiUrl);
       const blob = await response.blob();
@@ -782,9 +782,9 @@ export default function WebFiltering() {
 
                 <div className="flex flex-col items-center p-4 bg-white border border-slate-300 rounded-xl space-y-3 shadow-inner">
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify(generatedQr.qrPayload))}`}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(generatedQr.scannableUrl || generatedQr.qrPayloadString || JSON.stringify(generatedQr.qrPayload))}`}
                     alt="Scannable Work Mode QR Code"
-                    className="w-48 h-48 border border-slate-200 rounded-lg p-2 bg-white shadow-sm"
+                    className="w-52 h-52 border border-slate-200 rounded-lg p-2 bg-white shadow-sm"
                   />
                   <div className="text-center space-y-0.5">
                     <p className="text-xs font-black text-slate-900">{generatedQr.tokenUuid}</p>
