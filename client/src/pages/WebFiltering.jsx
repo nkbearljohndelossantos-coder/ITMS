@@ -161,6 +161,28 @@ export default function WebFiltering() {
     }
   };
 
+  // Download PNG QR Code Image helper
+  const downloadQRCodeImage = async (qrDataObj, actionType, tokenUuid) => {
+    try {
+      const qrDataString = JSON.stringify(qrDataObj);
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrDataString)}`;
+      const response = await fetch(qrApiUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `${actionType}_${tokenUuid || 'QR'}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+      showToast('Downloaded', `QR Code image downloaded as '${actionType}_${tokenUuid || 'QR'}.png'`, 'success');
+    } catch (e) {
+      showToast('Error', 'Failed to download QR image file.', 'error');
+    }
+  };
+
   // Generate QR Token
   const handleGenerateQrToken = async (type) => {
     setQrAction(type);
@@ -170,8 +192,10 @@ export default function WebFiltering() {
         ttl_minutes: 30
       });
       if (res.data.success) {
-        setGeneratedQr(res.data.data);
+        const data = res.data.data;
+        setGeneratedQr(data);
         showToast('QR Token Generated', 'Single-use HMAC-SHA256 signed QR code generated.', 'success');
+        await downloadQRCodeImage(data.qrPayload, type, data.tokenUuid);
       }
     } catch (err) {
       showToast('Error', 'Failed to generate QR code.', 'error');
@@ -745,20 +769,56 @@ export default function WebFiltering() {
             </div>
 
             {generatedQr && (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 max-w-md">
-                <div className="flex items-center gap-2">
-                  <QrCode className="h-6 w-6 text-gold-600" />
-                  <h4 className="font-bold text-xs text-slate-900">Signed Payload Ready ({generatedQr.action_type})</h4>
+              <div className="p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-4 max-w-md">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <div className="flex items-center gap-2">
+                    <QrCode className="h-5 w-5 text-gold-600" />
+                    <h4 className="font-bold text-xs text-slate-900">Signed Scannable QR ({generatedQr.action_type})</h4>
+                  </div>
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-black text-[9px]">
+                    HMAC-SHA256 Signed
+                  </span>
                 </div>
 
-                <div className="p-3 bg-white border border-slate-300 rounded font-mono text-[10px] text-slate-800 break-all space-y-1">
-                  <p><span className="font-bold text-slate-500">Token UUID:</span> {generatedQr.tokenUuid}</p>
-                  <p><span className="font-bold text-slate-500">HMAC Sig:</span> {generatedQr.qrPayload.sig}</p>
-                  <p><span className="font-bold text-slate-500">Expires:</span> {new Date(generatedQr.expiresAt).toLocaleString()}</p>
+                <div className="flex flex-col items-center p-4 bg-white border border-slate-300 rounded-xl space-y-3 shadow-inner">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify(generatedQr.qrPayload))}`}
+                    alt="Scannable Work Mode QR Code"
+                    className="w-48 h-48 border border-slate-200 rounded-lg p-2 bg-white shadow-sm"
+                  />
+                  <div className="text-center space-y-0.5">
+                    <p className="text-xs font-black text-slate-900">{generatedQr.tokenUuid}</p>
+                    <p className="text-[10px] text-slate-500 font-mono">Expires: {new Date(generatedQr.expiresAt).toLocaleString()}</p>
+                  </div>
                 </div>
 
-                <p className="text-[10px] text-slate-500 font-medium">
-                  Scan this signed QR payload using the Android MDM Agent to authenticate Work Mode transitions.
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => downloadQRCodeImage(generatedQr.qrPayload, generatedQr.action_type, generatedQr.tokenUuid)}
+                    className="flex-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow transition-colors"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    <span>Download PNG Image</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(generatedQr.qrPayload, null, 2));
+                      const downloadAnchor = document.createElement('a');
+                      downloadAnchor.setAttribute("href", dataStr);
+                      downloadAnchor.setAttribute("download", `${generatedQr.action_type}_${generatedQr.tokenUuid}.json`);
+                      document.body.appendChild(downloadAnchor);
+                      downloadAnchor.click();
+                      downloadAnchor.remove();
+                    }}
+                    className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow transition-colors"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>JSON Payload</span>
+                  </button>
+                </div>
+
+                <p className="text-[10px] text-slate-500 font-medium text-center">
+                  Scan this signed QR payload using the Android MDM Agent camera to authenticate Work Mode transitions.
                 </p>
               </div>
             )}
