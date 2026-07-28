@@ -173,7 +173,9 @@ export default function Assets() {
     setSaving(true);
     const formData = new FormData();
     Object.entries(data).forEach(([key, val]) => {
-      if (val !== undefined && val !== null) formData.append(key, val);
+      if (val !== undefined && val !== null && key !== 'image' && key !== 'image_path') {
+        formData.append(key, val);
+      }
     });
 
     if (uploadImage) {

@@ -256,6 +256,9 @@ export default function AssetDetails() {
     e.preventDefault();
     setSaving(true);
     const formData = new FormData(e.target);
+    formData.delete('image');
+    formData.delete('image_path');
+
     if (editUploadImage) {
       formData.append('image', editUploadImage);
     } else if (asset && asset.image_path) {
