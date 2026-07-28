@@ -3,7 +3,7 @@ const router = express.Router();
 const crypto = require('crypto');
 const db = require('../config/db');
 const logger = require('../utils/logger');
-const auditLogger = require('../middleware/auditLogger');
+const { logAudit } = require('../utils/auditLogger');
 
 // Helper: Hash enrollment token or key
 const hashSecret = (secret) => {
