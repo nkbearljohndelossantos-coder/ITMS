@@ -79,7 +79,8 @@ export default function Reports() {
       extraFilter
     }).toString();
 
-    const exportUrl = `/api/reports/${reportType}/export?${query}`;
+    const token = localStorage.getItem('accessToken');
+    const exportUrl = `/api/reports/${reportType}/export?token=${token || ''}&${query}`;
     window.open(exportUrl, '_blank');
     showToast('Exporting', 'Generating spreadsheet download...', 'info');
   };

@@ -882,7 +882,12 @@ export default function AssetDetails() {
                     )}
                     {/* Download PDF Receipt */}
                     <a 
-                      href={`/api/assignments/${activeAssignment.id}/receipt`}
+                      href={`/api/assignments/${activeAssignment.id}/receipt?token=${localStorage.getItem('accessToken') || ''}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const token = localStorage.getItem('accessToken');
+                        window.open(`/api/assignments/${activeAssignment.id}/receipt?token=${token || ''}`, '_blank');
+                      }}
                       target="_blank"
                       rel="noreferrer"
                       className="w-full py-2 border border-slate-355 text-slate-700 bg-white hover:bg-slate-50 text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 cursor-pointer transition-colors"

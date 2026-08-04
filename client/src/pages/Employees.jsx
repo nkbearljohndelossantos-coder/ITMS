@@ -169,9 +169,8 @@ export default function Employees() {
   };
 
   const handleExport = () => {
-    window.open('/api/reports/assets/export', '_blank'); // loose route helper
-    // Better: export employee spreadsheet specifically
-    window.open('/api/employees/export', '_blank');
+    const token = localStorage.getItem('accessToken');
+    window.open(`/api/employees/export?token=${token || ''}`, '_blank');
     showToast('Exporting', 'Generating Excel spreadsheet list...', 'info');
   };
 
