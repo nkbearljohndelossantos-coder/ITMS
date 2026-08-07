@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">NKB ITMS Agent</string>
+    <string name="device_admin_label">NKB ITMS Work Mode Security Admin</string>
+    <string name="device_admin_description">Enforces corporate Work Mode policy, application hiding, camera disabling, and web filtering for NKB Manufacturing enterprise security.</string>
+</resources>

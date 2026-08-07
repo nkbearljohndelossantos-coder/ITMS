@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.nkb.itms.agent">
+
+    <!-- Android Enterprise & System Permissions -->
+    <uses-permission android.name="android.permission.INTERNET" />
+    <uses-permission android.name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android.name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android.name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android.name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android.name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android.name="android.permission.MANAGE_DEVICE_POLICY_CAMERA" tools:ignore="ProtectedPermissions" />
+    <uses-permission android.name="android.permission.MANAGE_DEVICE_POLICY_LOCK" tools:ignore="ProtectedPermissions" />
+    <uses-permission android.name="android.permission.MANAGE_DEVICE_POLICY_RESTRICTIONS" tools:ignore="ProtectedPermissions" />
+    <uses-permission android.name="android.permission.MANAGE_DEVICE_POLICY_APPS" tools:ignore="ProtectedPermissions" />
+    <uses-permission android.name="android.permission.BIND_DEVICE_ADMIN" tools:ignore="ProtectedPermissions" />
+    <uses-permission android.name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="NKB ITMS Agent"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"
+        android:usesCleartextTraffic="true">
+
+        <!-- Main Enrollment & Status Activity -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Device Admin Receiver for Android Enterprise Device Owner -->
+        <receiver
+            android:name=".AdminReceiver"
+            android:description="@string/device_admin_description"
+            android:label="@string/device_admin_label"
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:exported="true">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+                <action android:name="android.app.action.DEVICE_ADMIN_DISABLED" />
+                <action android:name="android.app.action.PROFILE_PROVISIONING_COMPLETE" />
+                <action android:name="android.app.action.DEVICE_OWNER_CHANGED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Boot Receiver to re-enforce policies on device reboot -->
+        <receiver
+            android:name=".BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- VPN Service for Web Filtering Sinkhole -->
+        <service
+            android:name=".MdmVpnService"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
+        </service>
+
+    </application>
+
+</manifest>

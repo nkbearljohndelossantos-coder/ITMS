@@ -4,6 +4,8 @@ const crypto = require('crypto');
 const db = require('../config/db');
 const logger = require('../utils/logger');
 const { authenticateToken, requirePermission } = require('../middleware/auth');
+const { authenticateDevice, hashApiKey } = require('../middleware/deviceAuth');
+const { buildDevicePolicyPayload, getWorkModePolicyUpdate } = require('../utils/mdmPolicy');
 const { logAudit } = require('../utils/auditLogger');
 
 // Secret key for HMAC-SHA256 QR signatures
@@ -17,35 +19,59 @@ function generateTokenSignature(payloadStr) {
 // 1. Live Enterprise Dashboard Summary
 router.get('/dashboard', authenticateToken, requirePermission('assets.view'), async (req, res) => {
   try {
-    const totalDevices = await db('assets').where('category_id', function() {
-      this.select('id').from('asset_categories').where('name', 'like', '%Computer%').orWhere('name', 'like', '%Mobile%').first();
-    }).count('id as count').first().catch(() => ({ count: 0 }));
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 
-    const activePolicy = await db('webfilter_policies').where('is_active', true).first();
-    const categoriesCount = await db('webfilter_categories').count('id as count').first();
-    const blacklistCount = await db('webfilter_blacklist').where('is_active', true).count('id as count').first();
-    const whitelistCount = await db('webfilter_whitelist').where('is_active', true).count('id as count').first();
-    const appBlacklistCount = await db('webfilter_app_blacklist').where('is_active', true).count('id as count').first();
-    const recentAuditLogs = await db('webfilter_audit_logs').orderBy('id', 'desc').limit(20);
-    const recentIncidents = await db('webfilter_security_incidents').where('is_resolved', false).orderBy('id', 'desc').limit(10);
-    const discoveredAppsCount = await db('webfilter_app_inventory').count('id as count').first();
+    const [
+      enrolledCount,
+      onlineCount,
+      activePolicy,
+      categoriesCount,
+      blacklistCount,
+      whitelistCount,
+      appBlacklistCount,
+      recentAuditLogs,
+      recentIncidents,
+      discoveredAppsCount,
+      enrolledDevices
+    ] = await Promise.all([
+      db('mdm_enrolled_devices').where('status', 'enrolled').count('id as count').first().catch(() => ({ count: 0 })),
+      db('mdm_enrolled_devices').where('status', 'enrolled').where('last_seen', '>=', fiveMinutesAgo).count('id as count').first().catch(() => ({ count: 0 })),
+      db('webfilter_policies').where('is_active', true).first(),
+      db('webfilter_categories').count('id as count').first(),
+      db('webfilter_blacklist').where('is_active', true).count('id as count').first(),
+      db('webfilter_whitelist').where('is_active', true).count('id as count').first(),
+      db('webfilter_app_blacklist').where('is_active', true).count('id as count').first(),
+      db('webfilter_audit_logs').orderBy('id', 'desc').limit(20),
+      db('webfilter_security_incidents').where('is_resolved', false).orderBy('id', 'desc').limit(10),
+      db('webfilter_app_inventory').count('id as count').first(),
+      db('mdm_enrolled_devices').where('status', 'enrolled').orderBy('last_seen', 'desc').limit(50).catch(() => [])
+    ]);
+
+    const totalEnrolled = Number(enrolledCount?.count || 0);
+    const onlineDevices = Number(onlineCount?.count || 0);
+    const nonCompliant = Number(recentIncidents?.length || 0);
 
     return res.json({
       success: true,
       data: {
         summary: {
-          totalDevices: Number(totalDevices?.count || 0),
-          onlineDevices: 1, // Currently connected MDM endpoints
-          workModeEnabled: activePolicy ? Boolean(activePolicy.is_work_mode_enabled) : true,
-          compliantDevices: Number(totalDevices?.count || 0) - Number(recentIncidents?.length || 0),
-          nonCompliantDevices: Number(recentIncidents?.length || 0),
+          totalDevices: totalEnrolled,
+          onlineDevices,
+          enrolledDevices: totalEnrolled,
+          agentRequired: totalEnrolled === 0,
+          workModeEnabled: activePolicy ? Boolean(activePolicy.is_work_mode_enabled) : false,
+          compliantDevices: Math.max(0, totalEnrolled - nonCompliant),
+          nonCompliantDevices: nonCompliant,
+          complianceRate: totalEnrolled > 0 ? Math.round(((totalEnrolled - nonCompliant) / totalEnrolled) * 100) : 0,
           totalBlockedCategories: Number(categoriesCount?.count || 18),
           blacklistedDomainsCount: Number(blacklistCount?.count || 0),
           whitelistedDomainsCount: Number(whitelistCount?.count || 0),
           blockedAppsCount: Number(appBlacklistCount?.count || 0),
-          discoveredAppsCount: Number(discoveredAppsCount?.count || 0)
+          discoveredAppsCount: Number(discoveredAppsCount?.count || 0),
+          securityIncidents: nonCompliant
         },
         activePolicy,
+        enrolledDevices,
         recentAuditLogs,
         recentIncidents
       }
@@ -303,7 +329,9 @@ router.post('/qr-tokens/generate', authenticateToken, requirePermission('assets.
       created_at: new Date()
     });
 
-    const baseUrl = process.env.PUBLIC_URL || 'https://itms.nkbmanufacturing.com';
+    const host = req.get('host');
+    const protocol = req.protocol || 'http';
+    const baseUrl = process.env.PUBLIC_URL || `${protocol}://${host}`;
     const scannableUrl = `${baseUrl}/api/v1/webfilter/qr-scan?token=${tokenUuid}&action=${action_type}&sig=${signature}`;
 
     const qrPayload = {
@@ -421,6 +449,62 @@ router.get('/qr-scan', async (req, res) => {
       `);
     }
 
+    // Verify expiry
+    if (new Date(tokenRecord.expires_at) < new Date()) {
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>NKB ITMS Work Mode QR</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #fff; text-align: center; padding: 2rem; }
+            .card { background: #1e293b; border-radius: 1rem; padding: 2rem; border: 1px solid #334155; max-width: 400px; margin: 0 auto; }
+            .icon { font-size: 3rem; margin-bottom: 1rem; }
+            .title { font-size: 1.25rem; font-weight: 800; color: #f43f5e; margin-bottom: 0.5rem; }
+            .desc { font-size: 0.875rem; color: #94a3b8; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="icon">⏳</div>
+            <div class="title">QR Code Expired</div>
+            <div class="desc">This Work Mode QR code has expired. Request a new one from IT Admin.</div>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+
+    // Verify HMAC signature
+    const payloadToSign = `${tokenRecord.token_uuid}:${tokenRecord.action_type}:${tokenRecord.asset_id || 0}:${tokenRecord.employee_id || 0}:${new Date(tokenRecord.expires_at).getTime()}:${tokenRecord.nonce}`;
+    const expectedSig = generateTokenSignature(payloadToSign);
+    if (sig !== expectedSig && sig !== tokenRecord.signature) {
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>NKB ITMS Work Mode QR</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #fff; text-align: center; padding: 2rem; }
+            .card { background: #1e293b; border-radius: 1rem; padding: 2rem; border: 1px solid #334155; max-width: 400px; margin: 0 auto; }
+            .icon { font-size: 3rem; margin-bottom: 1rem; }
+            .title { font-size: 1.25rem; font-weight: 800; color: #f43f5e; margin-bottom: 0.5rem; }
+            .desc { font-size: 0.875rem; color: #94a3b8; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="icon">🔒</div>
+            <div class="title">Invalid Signature</div>
+            <div class="desc">This QR code failed cryptographic verification. Do not proceed.</div>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+
     // Mark token as redeemed
     await db('webfilter_qr_tokens').where('id', tokenRecord.id).update({
       is_used: true,
@@ -429,20 +513,29 @@ router.get('/qr-scan', async (req, res) => {
 
     const isEnable = (tokenRecord.action_type === 'ENABLE_WORK_MODE' || action === 'ENABLE_WORK_MODE');
 
-    // Update active policy
-    await db('webfilter_policies').where('is_active', true).update({
-      is_work_mode_enabled: isEnable,
-      updated_at: new Date()
-    });
+    const currentPolicy = await db('webfilter_policies').where('is_active', true).first();
+    const policyUpdate = getWorkModePolicyUpdate(isEnable, currentPolicy);
 
-    // Broadcast Socket.IO sync
+    await db('webfilter_policies').where('is_active', true).update(policyUpdate);
+
+    // Sync work mode flag on all enrolled devices
+    await db('mdm_enrolled_devices')
+      .where('status', 'enrolled')
+      .update({ work_mode_enabled: isEnable, updated_at: new Date() })
+      .catch(() => {});
+
+    const updatedPolicy = await db('webfilter_policies').where('is_active', true).first();
+
+    // Broadcast Socket.IO sync to MDM agents
     const io = req.app.get('io');
     if (io) {
-      io.emit('webfilter:command', {
+      io.to('mdm_devices').emit('webfilter:command', {
         command: isEnable ? 'ENABLE_WORK_MODE' : 'DISABLE_WORK_MODE',
         tokenUuid: token,
+        policy: updatedPolicy,
         timestamp: Date.now()
       });
+      io.emit('webfilter:policy_sync', { policy: updatedPolicy, timestamp: Date.now() });
     }
 
     return res.send(`
@@ -465,11 +558,15 @@ router.get('/qr-scan', async (req, res) => {
           <div class="icon">${isEnable ? '🛡️' : '⏹'}</div>
           <div class="title">${isEnable ? 'WORK MODE ENFORCED' : 'WORK MODE DEACTIVATED'}</div>
           <div class="desc">
-            Smartphone Camera QR Scan Authenticated successfully.
+            Server policy updated successfully.
+            <br><br>
+            <strong>Important:</strong> Restrictions (Camera, Apps, Web Filtering) are enforced by the <strong>NKB MDM Agent</strong> app installed as Device Owner on this phone.
+            <br><br>
+            If Camera and apps are still accessible, the MDM Agent is not enrolled. Contact IT Admin.
             <br>
             <strong>Token:</strong> ${token}
           </div>
-          <div class="badge">${isEnable ? '● INTERNET & GAMBLING FILTERING ACTIVE' : '● NORMAL PHONE MODE RESTORED'}</div>
+          <div class="badge">${isEnable ? '● POLICY SYNCED TO SERVER — AWAITING AGENT ENFORCEMENT' : '● NORMAL PHONE MODE RESTORED'}</div>
         </div>
       </body>
       </html>
@@ -511,8 +608,20 @@ router.post('/commands', authenticateToken, requirePermission('assets.update'), 
     // Broadcast Socket.IO command to target Android MDM agents
     const io = req.app.get('io');
     if (io) {
-      io.emit('webfilter:command', commandPayload);
+      io.to('mdm_devices').emit('webfilter:command', commandPayload);
+      io.emit('webfilter:policy_sync', { command: commandPayload, timestamp: Date.now() });
     }
+
+    // Queue command for polling fallback
+    await db('mdm_device_commands').insert({
+      command_uuid: commandPayload.commandUuid,
+      device_id: asset_id ? String(asset_id) : null,
+      command: command,
+      parameters: JSON.stringify(parameters || {}),
+      status: 'pending',
+      issued_by: req.user.username || 'Admin',
+      created_at: new Date()
+    }).catch(() => {});
 
     return res.json({
       success: true,
@@ -585,6 +694,328 @@ router.post('/logs', async (req, res) => {
     });
 
     return res.json({ success: true, message: 'Audit log recorded.' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ======================================================
+// MDM DEVICE APIs — used by Android MDM Agent
+// ======================================================
+
+// List enrolled devices (admin)
+router.get('/devices', authenticateToken, requirePermission('assets.view'), async (req, res) => {
+  try {
+    const devices = await db('mdm_enrolled_devices')
+      .orderBy('last_seen', 'desc')
+      .select('id', 'device_id', 'device_name', 'manufacturer', 'model', 'android_version',
+        'employee_name', 'work_mode_enabled', 'is_online', 'is_compliant', 'status', 'last_seen', 'enrolled_at');
+    return res.json({ success: true, data: devices });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Create enrollment token (admin)
+router.post('/enrollment/create', authenticateToken, requirePermission('assets.update'), async (req, res) => {
+  const { employee_id, employee_name, department, policy_id } = req.body;
+  try {
+    const policy = policy_id
+      ? await db('webfilter_policies').where('id', policy_id).first()
+      : await db('webfilter_policies').where('is_active', true).first();
+
+    const enrollmentId = `ENR-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = hashApiKey(rawToken);
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+
+    await db('mdm_enrollment_tokens').insert({
+      enrollment_id: enrollmentId,
+      token_hash: tokenHash,
+      employee_id: employee_id || null,
+      employee_name: employee_name || 'NKB Employee',
+      department: department || 'Production',
+      policy_id: policy?.id || null,
+      status: 'pending',
+      expires_at: expiresAt,
+      created_at: new Date(),
+      updated_at: new Date()
+    });
+
+    const host = req.get('host');
+    const protocol = req.protocol || 'http';
+    const baseUrl = process.env.PUBLIC_URL || `${protocol}://${host}`;
+
+    const androidProvisioningPayload = {
+      'android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME': 'com.nkb.itms.mdm/.receiver.DeviceAdminReceiver',
+      'android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION': `${baseUrl}/uploads/nkb-itms-mdm-agent.apk`,
+      'android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED': true,
+      'android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE': {
+        serverUrl: baseUrl,
+        enrollmentToken: rawToken,
+        enrollmentId,
+        policyId: policy?.id || 1
+      }
+    };
+
+    return res.json({
+      success: true,
+      message: 'MDM enrollment token created.',
+      data: {
+        enrollmentId,
+        enrollmentToken: rawToken,
+        employeeName: employee_name || 'NKB Employee',
+        policyName: policy?.name || 'Enterprise Work Mode Standard Policy',
+        expiresAt,
+        androidProvisioningPayload,
+        provisioningQrData: JSON.stringify(androidProvisioningPayload)
+      }
+    });
+  } catch (err) {
+    logger.error(`MDM enrollment create error: ${err.message}`);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Complete device enrollment (called by Android MDM Agent)
+router.post('/devices/register', async (req, res) => {
+  const {
+    enrollment_token,
+    device_id,
+    device_name,
+    manufacturer,
+    model,
+    android_version,
+    serial_number
+  } = req.body;
+
+  if (!enrollment_token || !device_id) {
+    return res.status(400).json({ success: false, message: 'enrollment_token and device_id are required.' });
+  }
+
+  try {
+    const tokenHash = hashApiKey(enrollment_token);
+    const enrollment = await db('mdm_enrollment_tokens')
+      .where({ token_hash: tokenHash, status: 'pending' })
+      .first();
+
+    if (!enrollment) {
+      return res.status(401).json({ success: false, message: 'Invalid or already used enrollment token.' });
+    }
+
+    if (new Date(enrollment.expires_at) < new Date()) {
+      await db('mdm_enrollment_tokens').where('id', enrollment.id).update({ status: 'expired' });
+      return res.status(401).json({ success: false, message: 'Enrollment token expired. Request a new QR from IT Admin.' });
+    }
+
+    const existing = await db('mdm_enrolled_devices').where('device_id', device_id).first();
+    if (existing && existing.status === 'enrolled') {
+      return res.status(409).json({ success: false, message: 'Device already enrolled.' });
+    }
+
+    const apiKey = crypto.randomBytes(32).toString('hex');
+    const apiKeyHash = hashApiKey(apiKey);
+
+    const deviceRecord = {
+      device_id,
+      device_name: device_name || `${manufacturer || 'Android'} ${model || 'Device'}`,
+      manufacturer: manufacturer || null,
+      model: model || null,
+      android_version: android_version || null,
+      serial_number: serial_number || device_id,
+      employee_id: enrollment.employee_id,
+      employee_name: enrollment.employee_name,
+      policy_id: enrollment.policy_id,
+      api_key_hash: apiKeyHash,
+      enrollment_id: enrollment.enrollment_id,
+      work_mode_enabled: true,
+      is_online: true,
+      is_compliant: true,
+      status: 'enrolled',
+      last_seen: new Date(),
+      enrolled_at: new Date(),
+      updated_at: new Date()
+    };
+
+    if (existing) {
+      await db('mdm_enrolled_devices').where('id', existing.id).update(deviceRecord);
+    } else {
+      await db('mdm_enrolled_devices').insert({ ...deviceRecord, created_at: new Date() });
+    }
+
+    await db('mdm_enrollment_tokens').where('id', enrollment.id).update({
+      status: 'used',
+      used_at: new Date(),
+      updated_at: new Date()
+    });
+
+    const policyPayload = await buildDevicePolicyPayload(enrollment.policy_id);
+
+    return res.json({
+      success: true,
+      message: 'Device enrolled successfully. Policy will be enforced immediately.',
+      data: {
+        deviceId: device_id,
+        apiKey,
+        policy: policyPayload
+      }
+    });
+  } catch (err) {
+    logger.error(`MDM device register error: ${err.message}`);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Pull current policy (Android MDM Agent)
+router.get('/devices/policy', authenticateDevice, async (req, res) => {
+  try {
+    const policyPayload = await buildDevicePolicyPayload(req.mdmDevice.policy_id);
+    if (!policyPayload) {
+      return res.status(404).json({ success: false, message: 'No active policy found.' });
+    }
+
+    policyPayload.workModeEnabled = Boolean(req.mdmDevice.work_mode_enabled) && policyPayload.workModeEnabled;
+
+    return res.json({ success: true, data: policyPayload });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Poll pending commands (Android MDM Agent fallback)
+router.get('/devices/commands', authenticateDevice, async (req, res) => {
+  try {
+    const commands = await db('mdm_device_commands')
+      .where(function () {
+        this.where('device_id', req.mdmDevice.device_id).orWhereNull('device_id');
+      })
+      .where('status', 'pending')
+      .orderBy('created_at', 'asc')
+      .limit(10);
+
+    const formatted = commands.map(c => ({
+      commandUuid: c.command_uuid,
+      command: c.command,
+      parameters: c.parameters ? JSON.parse(c.parameters) : {},
+      timestamp: new Date(c.created_at).getTime()
+    }));
+
+    if (commands.length > 0) {
+      const ids = commands.map(c => c.id);
+      await db('mdm_device_commands').whereIn('id', ids).update({
+        status: 'delivered',
+        delivered_at: new Date()
+      });
+    }
+
+    return res.json({ success: true, data: formatted });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Acknowledge command execution (Android MDM Agent)
+router.post('/devices/commands/:commandUuid/ack', authenticateDevice, async (req, res) => {
+  const { commandUuid } = req.params;
+  const { success: ackSuccess = true } = req.body;
+  try {
+    await db('mdm_device_commands')
+      .where('command_uuid', commandUuid)
+      .update({
+        status: ackSuccess ? 'acknowledged' : 'failed',
+        acknowledged_at: new Date()
+      });
+    return res.json({ success: true, message: 'Command acknowledged.' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Device heartbeat / telemetry (Android MDM Agent)
+router.post('/devices/heartbeat', authenticateDevice, async (req, res) => {
+  const {
+    battery_level,
+    is_charging,
+    network_type,
+    wifi_ssid,
+    ip_address,
+    is_work_mode_active,
+    is_compliant,
+    installed_apps
+  } = req.body;
+
+  try {
+    await db('mdm_enrolled_devices').where('id', req.mdmDevice.id).update({
+      is_online: true,
+      is_compliant: is_compliant !== undefined ? Boolean(is_compliant) : true,
+      work_mode_enabled: is_work_mode_active !== undefined ? Boolean(is_work_mode_active) : req.mdmDevice.work_mode_enabled,
+      last_seen: new Date(),
+      updated_at: new Date()
+    });
+
+    if (req.mdmDevice.asset_id) {
+      const telemetryData = {
+        battery_level: battery_level || 100,
+        is_charging: Boolean(is_charging),
+        network_type: network_type || 'WiFi',
+        wifi_ssid: wifi_ssid || null,
+        ip_address: ip_address || null,
+        is_work_mode_active: Boolean(is_work_mode_active),
+        is_compliant: is_compliant !== undefined ? Boolean(is_compliant) : true,
+        last_heartbeat: new Date()
+      };
+      const exists = await db('webfilter_telemetry').where('asset_id', req.mdmDevice.asset_id).first();
+      if (exists) {
+        await db('webfilter_telemetry').where('asset_id', req.mdmDevice.asset_id).update(telemetryData);
+      } else {
+        await db('webfilter_telemetry').insert({ asset_id: req.mdmDevice.asset_id, ...telemetryData });
+      }
+    }
+
+    if (Array.isArray(installed_apps) && installed_apps.length > 0 && req.mdmDevice.asset_id) {
+      for (const app of installed_apps.slice(0, 50)) {
+        await db('webfilter_app_inventory')
+          .insert({
+            asset_id: req.mdmDevice.asset_id,
+            package_name: app.package_name,
+            app_name: app.app_name || app.package_name,
+            version_name: app.version_name || null,
+            status: 'allowed',
+            created_at: new Date(),
+            updated_at: new Date()
+          })
+          .catch(() => {});
+      }
+    }
+
+    const policyPayload = await buildDevicePolicyPayload(req.mdmDevice.policy_id);
+    return res.json({
+      success: true,
+      message: 'Heartbeat recorded.',
+      data: { policy: policyPayload }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Revoke device (admin)
+router.delete('/devices/:deviceId', authenticateToken, requirePermission('assets.update'), async (req, res) => {
+  try {
+    await db('mdm_enrolled_devices')
+      .where('device_id', req.params.deviceId)
+      .update({ status: 'revoked', is_online: false, updated_at: new Date() });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to('mdm_devices').emit('webfilter:command', {
+        command: 'UNENROLL',
+        deviceId: req.params.deviceId,
+        timestamp: Date.now()
+      });
+    }
+
+    return res.json({ success: true, message: 'Device revoked from MDM.' });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

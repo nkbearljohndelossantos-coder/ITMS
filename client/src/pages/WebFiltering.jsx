@@ -470,6 +470,21 @@ export default function WebFiltering() {
 
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
                 <div>
+                  <p className="font-bold text-slate-900">Block / Disable Camera</p>
+                  <p className="text-[10px] text-slate-500">Android OS DevicePolicyManager Camera Restriction</p>
+                </div>
+                <button
+                  onClick={() => handleTogglePolicyFlag('hide_camera', activePolicy.hide_camera)}
+                  className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
+                    activePolicy.hide_camera ? 'bg-emerald-600 justify-end' : 'bg-slate-300 justify-start'
+                  }`}
+                >
+                  <div className="w-4 h-4 rounded-full bg-white shadow-md" />
+                </button>
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
+                <div>
                   <p className="font-bold text-slate-900">Hide Non-Company Browsers</p>
                   <p className="text-[10px] text-slate-500">Hides Chrome, Edge, Firefox</p>
                 </div>
@@ -753,46 +768,73 @@ export default function WebFiltering() {
               Work Mode Single-Use Signed QR / Barcode Generator
             </h3>
 
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => handleGenerateQrToken('ENABLE_WORK_MODE')}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold cursor-pointer shadow"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold cursor-pointer shadow transition-colors"
               >
-                Download Work Mode QR
+                Generate Work Mode Security QR
               </button>
               <button
                 onClick={() => handleGenerateQrToken('DISABLE_WORK_MODE')}
-                className="px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold cursor-pointer shadow"
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold cursor-pointer shadow transition-colors"
               >
-                Download End Work Mode QR
+                Generate End Work Mode QR
               </button>
+              <a
+                href="/uploads/NKB-ITMS-Agent.apk"
+                download="NKB-ITMS-Agent.apk"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                <span>Download Android DPC Agent (.apk)</span>
+              </a>
             </div>
 
             {generatedQr && (
-              <div className="p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-4 max-w-md">
+              <div className="p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-4 max-w-xl">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                   <div className="flex items-center gap-2">
                     <QrCode className="h-5 w-5 text-gold-600" />
-                    <h4 className="font-bold text-xs text-slate-900">Signed Scannable QR ({generatedQr.action_type})</h4>
+                    <h4 className="font-bold text-xs text-slate-900">Signed MDM QR ({generatedQr.action_type})</h4>
                   </div>
                   <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-black text-[9px]">
-                    HMAC-SHA256 Signed
+                    Android Enterprise DPC Ready
                   </span>
                 </div>
 
-                <div className="flex flex-col items-center p-4 bg-white border border-slate-300 rounded-xl space-y-3 shadow-inner">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(generatedQr.scannableUrl || generatedQr.qrPayloadString || JSON.stringify(generatedQr.qrPayload))}`}
-                    alt="Scannable Work Mode QR Code"
-                    className="w-52 h-52 border border-slate-200 rounded-lg p-2 bg-white shadow-sm"
-                  />
-                  <div className="text-center space-y-0.5">
-                    <p className="text-xs font-black text-slate-900">{generatedQr.tokenUuid}</p>
-                    <p className="text-[10px] text-slate-500 font-mono">Expires: {new Date(generatedQr.expiresAt).toLocaleString()}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* QR 1: Universal Camera Scan */}
+                  <div className="flex flex-col items-center p-3 bg-white border border-slate-300 rounded-xl space-y-2 shadow-sm text-center">
+                    <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Option A: Smartphone Camera Scan</span>
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(generatedQr.scannableUrl || generatedQr.qrPayloadString)}`}
+                      alt="Camera Scannable QR Code"
+                      className="w-44 h-44 border border-slate-200 rounded-lg p-2 bg-white shadow-inner"
+                    />
+                    <p className="text-[10px] text-slate-500 font-semibold">Scan with iPhone/Android Camera or Google Lens</p>
+                  </div>
+
+                  {/* QR 2: Android Enterprise Device Owner Setup QR */}
+                  <div className="flex flex-col items-center p-3 bg-white border border-slate-300 rounded-xl space-y-2 shadow-sm text-center">
+                    <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Option B: Android Device Owner Provisioning</span>
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({
+                        "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "com.nkb.itms.agent/.AdminReceiver",
+                        "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": `${window.location.origin}/uploads/NKB-ITMS-Agent.apk`,
+                        "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
+                          "serverUrl": window.location.origin,
+                          "enrollmentToken": generatedQr.tokenUuid
+                        }
+                      }))}`}
+                      alt="Android Device Owner Provisioning QR Code"
+                      className="w-44 h-44 border border-slate-200 rounded-lg p-2 bg-white shadow-inner"
+                    />
+                    <p className="text-[10px] text-slate-500 font-semibold">Scan 6 times on Android Welcome Screen (Factory Reset)</p>
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 pt-2">
                   <button
                     onClick={() => downloadQRCodeImage(generatedQr.qrPayload, generatedQr.action_type, generatedQr.tokenUuid)}
                     className="flex-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow transition-colors"
