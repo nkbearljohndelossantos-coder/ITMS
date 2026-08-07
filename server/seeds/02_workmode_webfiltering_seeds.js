@@ -44,7 +44,7 @@ exports.seed = async function(knex) {
     block_streaming: false,
     block_messaging: false,
     block_ai_chat: false,
-    hide_camera: false,
+    hide_camera: true,
     hide_browsers: false,
     disable_screenshots: false,
     disable_usb_transfer: false,

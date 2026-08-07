@@ -1,6 +1,8 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const logger = require('./logger');
+const db = require('../config/db');
+const { hashApiKey } = require('../middleware/deviceAuth');
 
 let ioInstance = null;
 
@@ -17,11 +19,28 @@ function init(httpServer) {
     }
   });
 
-  // Authenticate socket connections using JWT
-  ioInstance.use((socket, next) => {
+  // Authenticate: admin JWT OR enrolled MDM device API key
+  ioInstance.use(async (socket, next) => {
     try {
+      const deviceId = socket.handshake.auth?.deviceId;
+      const deviceKey = socket.handshake.auth?.deviceKey;
+
+      if (deviceId && deviceKey) {
+        const device = await db('mdm_enrolled_devices')
+          .where({ device_id: deviceId, status: 'enrolled' })
+          .first();
+
+        if (!device || hashApiKey(deviceKey) !== device.api_key_hash) {
+          return next(new Error('Invalid device credentials'));
+        }
+
+        socket.isMdmDevice = true;
+        socket.mdmDevice = device;
+        return next();
+      }
+
       const token = socket.handshake.auth?.token || socket.handshake.headers['authorization']?.split(' ')[1];
-      
+
       if (!token) {
         return next(new Error('Authentication token required'));
       }
@@ -40,16 +59,37 @@ function init(httpServer) {
   });
 
   ioInstance.on('connection', (socket) => {
+    if (socket.isMdmDevice) {
+      const device = socket.mdmDevice;
+      socket.join('mdm_devices');
+      socket.join(`mdm_device_${device.device_id}`);
+
+      db('mdm_enrolled_devices')
+        .where('id', device.id)
+        .update({ is_online: true, last_seen: new Date() })
+        .catch(() => {});
+
+      logger.info(`MDM device connected: ${device.device_name} (${device.device_id})`);
+
+      socket.on('disconnect', () => {
+        db('mdm_enrolled_devices')
+          .where('id', device.id)
+          .update({ is_online: false, updated_at: new Date() })
+          .catch(() => {});
+        logger.info(`MDM device disconnected: ${device.device_id}`);
+      });
+
+      return;
+    }
+
     const userId = socket.user.id;
     const username = socket.user.username;
     const roles = socket.user.roles || [];
 
     logger.info(`Socket connected: User ${username} (ID: ${userId})`);
 
-    // 1. Join user-specific room for private notifications
     socket.join(`user_${userId}`);
 
-    // 2. Join role-specific rooms for department/staff alerts
     roles.forEach(role => {
       socket.join(`role_${role}`);
       logger.debug(`User ${username} joined socket room: role_${role}`);
