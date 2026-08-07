@@ -86,6 +86,22 @@ app.get(['/favicon.ico', '/api/favicon.ico'], (req, res) => {
   return res.status(204).end();
 });
 
+// Dedicated Android DPC Agent APK download route
+app.get(['/uploads/NKB-ITMS-Agent.apk', '/api/uploads/NKB-ITMS-Agent.apk', '/api/mdm/download-apk'], (req, res) => {
+  const apkPath = path.join(__dirname, '../uploads/NKB-ITMS-Agent.apk');
+  res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+  res.setHeader('Content-Disposition', 'attachment; filename="NKB-ITMS-Agent.apk"');
+
+  if (fs.existsSync(apkPath)) {
+    return res.sendFile(apkPath);
+  }
+  const distApkPath = path.join(__dirname, '../../client/dist/uploads/NKB-ITMS-Agent.apk');
+  if (fs.existsSync(distApkPath)) {
+    return res.sendFile(distApkPath);
+  }
+  return res.status(404).json({ success: false, message: 'NKB ITMS Agent APK file not found.' });
+});
+
 // Serve uploads folder
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')));

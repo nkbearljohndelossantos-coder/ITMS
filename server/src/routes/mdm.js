@@ -9,6 +9,24 @@ const { buildDevicePolicyPayload } = require("../utils/mdmPolicy");
 
 const JWT_SECRET = process.env.MDM_JWT_SECRET || process.env.JWT_SECRET || "nkb_itms_enterprise_mdm_jwt_secret_2026";
 
+// Dedicated Android Agent APK download endpoint
+router.get("/download-apk", (req, res) => {
+  const path = require("path");
+  const fs = require("fs");
+  const apkPath = path.join(__dirname, "../../uploads/NKB-ITMS-Agent.apk");
+  res.setHeader("Content-Type", "application/vnd.android.package-archive");
+  res.setHeader("Content-Disposition", 'attachment; filename="NKB-ITMS-Agent.apk"');
+
+  if (fs.existsSync(apkPath)) {
+    return res.sendFile(apkPath);
+  }
+  const distPath = path.join(__dirname, "../../../client/dist/uploads/NKB-ITMS-Agent.apk");
+  if (fs.existsSync(distPath)) {
+    return res.sendFile(distPath);
+  }
+  return res.status(404).json({ success: false, message: "APK file not found" });
+});
+
 // ======================================================
 // HEALTH CHECK
 // ======================================================
