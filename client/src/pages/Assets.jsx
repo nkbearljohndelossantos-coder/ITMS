@@ -102,11 +102,12 @@ function AssetCardImage({ src, name, categoryName, onZoom }) {
 
 export default function Assets() {
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermission, showToast } = useAuth();
   
   const [assets, setAssets] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
   const [uploadImage, setUploadImage] = useState(null);
