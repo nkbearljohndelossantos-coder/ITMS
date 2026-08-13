@@ -10,6 +10,17 @@ const path = require('path');
 const fs = require('fs');
 const { syncAssetsToManagedDevices } = require('../utils/assetDeviceSync');
 
+// Get asset categories
+router.get('/categories', authenticateToken, async (req, res) => {
+  try {
+    const categories = await db('asset_categories').select('*').orderBy('name', 'asc');
+    return res.json({ success: true, data: categories });
+  } catch (err) {
+    logger.error(`Get asset categories error: ${err.message}`);
+    return res.status(500).json({ success: false, message: 'Failed to retrieve asset categories.' });
+  }
+});
+
 // Get all assets (paginated, searched, filtered)
 router.get('/', authenticateToken, requirePermission('assets.view'), async (req, res) => {
   const { page = 1, limit = 10, search = '', categoryId = '', status = '', condition = '', warrantyExpiring = 'false' } = req.query;

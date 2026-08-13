@@ -135,7 +135,7 @@ export default function Assets() {
     try {
       setLoading(true);
       const [assetRes, catRes] = await Promise.all([
-        api.get('/v1/assets', {
+        api.get('/assets', {
           params: {
             page,
             limit: 9,
@@ -146,15 +146,17 @@ export default function Assets() {
             warrantyExpiring: warrantyFilter
           }
         }),
-        api.get('/v1/assets/categories')
+        api.get('/assets/categories').catch(() => api.get('/settings/asset-categories'))
       ]);
 
       if (assetRes.data.success) {
-        setAssets(assetRes.data.data);
-        if (assetRes.data.pagination) setPagination(assetRes.data.pagination);
+        const list = assetRes.data.data?.assets || assetRes.data.data || [];
+        setAssets(Array.isArray(list) ? list : []);
+        if (assetRes.data.data?.pagination) setPagination(assetRes.data.data.pagination);
+        else if (assetRes.data.pagination) setPagination(assetRes.data.pagination);
       }
       if (catRes.data.success) {
-        setCategories(catRes.data.data);
+        setCategories(catRes.data.data || []);
       }
     } catch (err) {
       console.error('Failed to load assets', err);

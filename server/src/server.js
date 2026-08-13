@@ -117,7 +117,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/employees', require('./routes/employees'));
 app.use('/api/departments', require('./routes/employees'));
-app.use('/api/assets', require('./routes/assets'));
+app.use(['/api/assets', '/api/v1/assets'], require('./routes/assets'));
 app.use('/api/assignments', require('./routes/assignments'));
 app.use('/api/tickets', require('./routes/tickets'));
 app.use('/api/inventory', require('./routes/inventory'));
