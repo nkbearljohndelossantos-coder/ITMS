@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Plus, Search, Filter, Laptop, AlertCircle, Eye, Edit,
-  Wrench, CheckCircle, HelpCircle, ShieldAlert, X, ZoomIn, Camera, Upload
+  Plus, Search, Filter, Laptop, Smartphone, AlertCircle, Eye, Edit,
+  Wrench, CheckCircle, HelpCircle, ShieldAlert, X, ZoomIn, Camera, Upload, ShieldCheck
 } from 'lucide-react';
 import ImageZoomModal from '../components/ImageZoomModal';
 import { optimizeImageQuality } from '../utils/imageOptimizer';
@@ -26,6 +26,13 @@ const assetSchema = z.object({
   specs_storage: z.string().optional(),
   specs_os: z.string().optional(),
   specs_win_edition: z.string().optional(),
+
+  // Phone Specs & MDM
+  imei_number: z.string().optional(),
+  phone_number: z.string().optional(),
+  sim_carrier: z.string().optional(),
+  mdm_enrolled: z.boolean().optional().default(false),
+  mdm_device_id: z.string().optional(),
   
   // Net
   hostname: z.string().optional(),
@@ -44,19 +51,25 @@ const assetSchema = z.object({
   remarks: z.string().optional()
 });
 
-function AssetCardImage({ src, name, onZoom }) {
+function AssetCardImage({ src, name, categoryName, onZoom }) {
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     setHasError(false);
   }, [src]);
 
+  const isPhone = String(categoryName || '').toLowerCase().includes('phone') || String(categoryName || '').toLowerCase().includes('mobile');
+
   if (!src || src === 'null' || src === 'undefined' || hasError) {
     return (
       <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 flex flex-col items-center justify-center p-3 text-slate-300 space-y-1">
-        <Laptop className="h-10 w-10 text-gold-400 opacity-90 drop-shadow" />
+        {isPhone ? (
+          <Smartphone className="h-10 w-10 text-blue-400 opacity-90 drop-shadow" />
+        ) : (
+          <Laptop className="h-10 w-10 text-gold-400 opacity-90 drop-shadow" />
+        )}
         <span className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400">
-          Hardware Asset
+          {isPhone ? 'Smartphone Asset' : 'Hardware Asset'}
         </span>
       </div>
     );
@@ -66,79 +79,85 @@ function AssetCardImage({ src, name, onZoom }) {
     <>
       <img 
         src={src} 
-        alt={name || 'Asset Image'} 
+        alt={name}
         onError={() => setHasError(true)}
-        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
       />
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onZoom(src, name);
-        }}
-        className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white gap-1 text-xs font-bold cursor-zoom-in"
-        title="Click to zoom picture details"
-      >
-        <ZoomIn className="h-5 w-5 drop-shadow" />
-        <span>Zoom Details</span>
-      </button>
+      {onZoom && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onZoom(src, name);
+          }}
+          className="absolute bottom-2 right-2 p-1.5 bg-slate-900/80 hover:bg-slate-900 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow"
+          title="Zoom photo"
+        >
+          <ZoomIn className="h-3.5 w-3.5" />
+        </button>
+      )}
     </>
   );
 }
 
 export default function Assets() {
-  const { hasPermission, showToast } = useAuth();
   const navigate = useNavigate();
-
+  const { hasPermission } = useAuth();
+  
   const [assets, setAssets] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingAsset, setEditingAsset] = useState(null);
+  const [uploadImage, setUploadImage] = useState(null);
+  const [zoomImage, setZoomImage] = useState(null);
 
-  // Filters State
+  // Filters state
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, pages: 1 });
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [conditionFilter, setConditionFilter] = useState('');
-  const [warrantyFilter, setWarrantyFilter] = useState('false');
-  const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ total: 0, pages: 1, limit: 10 });
+  const [warrantyFilter, setWarrantyFilter] = useState(false);
 
-  // Add / Edit Asset modal state
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingAsset, setEditingAsset] = useState(null);
-  const [uploadImage, setUploadImage] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [previewImage, setPreviewImage] = useState(null);
-  const [previewTitle, setPreviewTitle] = useState('');
-
-  const { register, handleSubmit, reset, formState: { errors } } = useForm({
-    resolver: zodResolver(assetSchema)
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm({
+    resolver: zodResolver(assetSchema),
+    defaultValues: {
+      condition: 'Good',
+      status: 'Available',
+      purchase_price: 0,
+      mdm_enrolled: false
+    }
   });
 
   const loadData = async () => {
-    setLoading(true);
     try {
-      const response = await api.get('/assets', {
-        params: {
-          page,
-          search,
-          categoryId: catFilter,
-          status: statusFilter,
-          condition: conditionFilter,
-          warrantyExpiring: warrantyFilter
-        }
-      });
-      if (response.data.success) {
-        setAssets(response.data.data.assets);
-        setPagination(response.data.data.pagination);
-      }
+      setLoading(true);
+      const [assetRes, catRes] = await Promise.all([
+        api.get('/v1/assets', {
+          params: {
+            page,
+            limit: 9,
+            search,
+            categoryId: catFilter,
+            status: statusFilter,
+            condition: conditionFilter,
+            warrantyExpiring: warrantyFilter
+          }
+        }),
+        api.get('/v1/assets/categories')
+      ]);
 
-      const catsRes = await api.get('/settings/asset-categories');
-      if (catsRes.data.success) {
-        setCategories(catsRes.data.data);
+      if (assetRes.data.success) {
+        setAssets(assetRes.data.data);
+        if (assetRes.data.pagination) setPagination(assetRes.data.pagination);
+      }
+      if (catRes.data.success) {
+        setCategories(catRes.data.data);
       }
     } catch (err) {
-      showToast('Error', 'Failed to retrieve asset registry.', 'error');
+      console.error('Failed to load assets', err);
     } finally {
       setLoading(false);
     }
@@ -163,6 +182,11 @@ export default function Assets() {
       specs_storage: '',
       specs_os: '',
       specs_win_edition: '',
+      imei_number: '',
+      phone_number: '',
+      sim_carrier: '',
+      mdm_enrolled: false,
+      mdm_device_id: '',
       hostname: '',
       mac_address: '',
       ip_address: '',
@@ -195,6 +219,11 @@ export default function Assets() {
       specs_storage: asset.specs_storage || '',
       specs_os: asset.specs_os || '',
       specs_win_edition: asset.specs_win_edition || '',
+      imei_number: asset.imei_number || '',
+      phone_number: asset.phone_number || '',
+      sim_carrier: asset.sim_carrier || '',
+      mdm_enrolled: asset.mdm_enrolled === true || asset.mdm_enrolled === 1,
+      mdm_device_id: asset.mdm_device_id || '',
       hostname: asset.hostname || '',
       mac_address: asset.mac_address || '',
       ip_address: asset.ip_address || '',
@@ -362,9 +391,9 @@ export default function Assets() {
                 <AssetCardImage 
                   src={asset.image_path} 
                   name={asset.name} 
+                  categoryName={asset.category_name}
                   onZoom={(s, n) => {
-                    setPreviewImage(s);
-                    setPreviewTitle(n);
+                    setZoomImage({ src: s, title: n });
                   }}
                 />
                 {/* Status sticker */}
@@ -381,13 +410,38 @@ export default function Assets() {
               {/* Card info */}
               <div className="p-4 flex-1 flex flex-col justify-between">
                 <div className="space-y-1.5">
-                  <span className="text-[10px] font-bold text-gold-600 uppercase">{asset.category_name}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] font-bold text-gold-600 uppercase">{asset.category_name}</span>
+                    {asset.mdm_enrolled && (
+                      <span className="ml-auto inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded font-black text-[9px]">
+                        <ShieldCheck className="h-3 w-3" />
+                        <span>MDM Active</span>
+                      </span>
+                    )}
+                  </div>
                   <h4 className="font-bold text-sm text-slate-900 group-hover:text-gold-700 transition-colors leading-tight line-clamp-1">
                     {asset.name}
                   </h4>
                   <p className="text-[10px] text-slate-500 font-medium leading-none">
                     Code: <span className="font-bold">{asset.asset_code}</span> | Serial: <span className="font-bold text-slate-800">{asset.serial_number}</span>
                   </p>
+
+                  {/* Phone Badges */}
+                  {(asset.phone_number || asset.imei_number || asset.sim_carrier) && (
+                    <div className="pt-1 flex flex-wrap items-center gap-1">
+                      {asset.phone_number && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 border border-blue-200 text-blue-800 font-bold text-[9.5px] rounded">
+                          <Smartphone className="h-3 w-3 text-blue-600" />
+                          <span>SIM: {asset.phone_number}</span>
+                        </span>
+                      )}
+                      {asset.imei_number && (
+                        <span className="px-1.5 py-0.5 bg-slate-100 border border-slate-200 text-slate-700 font-mono text-[9px] rounded">
+                          IMEI: {asset.imei_number}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   
                   {/* Current location or assignee */}
                   <div className="pt-2 text-[10px] text-slate-650 flex items-center gap-1 leading-normal">
@@ -540,7 +594,7 @@ export default function Assets() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-slate-500 mb-1">CPU Details</label>
-                    <input type="text" {...register('specs_cpu')} placeholder="i5-12400, M2..." className="w-full p-2 border border-slate-350 rounded" />
+                    <input type="text" {...register('specs_cpu')} placeholder="i5-12400, Snapdragon, A17..." className="w-full p-2 border border-slate-350 rounded" />
                   </div>
                   <div>
                     <label className="block text-slate-500 mb-1">RAM Capacity</label>
@@ -548,21 +602,57 @@ export default function Assets() {
                   </div>
                   <div>
                     <label className="block text-slate-500 mb-1">Storage Size</label>
-                    <input type="text" {...register('specs_storage')} placeholder="256GB SSD, 1TB HDD..." className="w-full p-2 border border-slate-350 rounded" />
+                    <input type="text" {...register('specs_storage')} placeholder="128GB, 256GB SSD..." className="w-full p-2 border border-slate-350 rounded" />
                   </div>
                   <div>
                     <label className="block text-slate-500 mb-1">Operating System</label>
-                    <input type="text" {...register('specs_os')} placeholder="Windows 11, macOS, Linux..." className="w-full p-2 border border-slate-350 rounded" />
+                    <input type="text" {...register('specs_os')} placeholder="Android 14, iOS 17, Windows 11..." className="w-full p-2 border border-slate-350 rounded" />
                   </div>
                   <div>
-                    <label className="block text-slate-500 mb-1">Windows Edition</label>
-                    <input type="text" {...register('specs_win_edition')} placeholder="Pro, Home, Enterprise..." className="w-full p-2 border border-slate-350 rounded" />
+                    <label className="block text-slate-500 mb-1">OS Edition / UI Version</label>
+                    <input type="text" {...register('specs_win_edition')} placeholder="One UI 6, iOS, Pro..." className="w-full p-2 border border-slate-350 rounded" />
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Mobile Phone & MDM Specifications */}
+              <div className="space-y-4 pt-2 bg-blue-50/50 p-4 border border-blue-200/80 rounded-xl">
+                <div className="flex items-center gap-2 border-b border-blue-200/80 pb-1.5">
+                  <Smartphone className="h-4 w-4 text-blue-600" />
+                  <h4 className="text-xs font-black text-slate-900">3. Mobile Phone & Enterprise MDM Details</h4>
+                  <span className="ml-auto px-2 py-0.5 bg-blue-100 text-blue-800 rounded font-black text-[9px] uppercase tracking-wider">Mobile Asset</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">IMEI Number (IMEI1/IMEI2)</label>
+                    <input type="text" {...register('imei_number')} placeholder="e.g. 358940112938475" className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">Phone Number / SIM</label>
+                    <input type="text" {...register('phone_number')} placeholder="e.g. 0917-889-1029" className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">SIM Network Carrier / Plan</label>
+                    <input type="text" {...register('sim_carrier')} placeholder="Globe Postpaid, Smart Enterprise..." className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">MDM Device Token ID</label>
+                    <input type="text" {...register('mdm_device_id')} placeholder="e.g. DEV-MDM-A54-8821" className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  </div>
+                  <div className="flex items-center gap-2 sm:col-span-2 pt-4">
+                    <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 border border-slate-300 rounded-lg shadow-sm">
+                      <input type="checkbox" {...register('mdm_enrolled')} className="w-4 h-4 text-blue-600 rounded cursor-pointer" />
+                      <span className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                        <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                        <span>MDM Work Mode Enrolled</span>
+                      </span>
+                    </label>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-4 pt-2">
-                <h4 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-1">3. Network Information</h4>
+                <h4 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-1">4. Network Information</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-slate-500 mb-1">Hostname</label>

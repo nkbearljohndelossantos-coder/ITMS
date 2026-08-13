@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Laptop, Calendar, Wrench, ShieldAlert, ArrowLeft, Plus, Edit,
+  Laptop, Smartphone, Calendar, Wrench, ShieldAlert, ArrowLeft, Plus, Edit,
   Upload, FileText, Trash2, Printer, Download, UserCheck, 
   ArrowRightLeft, RotateCcw, AlertTriangle, ShieldCheck, X, Camera
 } from 'lucide-react';
@@ -719,6 +719,40 @@ export default function AssetDetails() {
                   <div>
                     <span className="block text-slate-400 font-bold uppercase text-[9px]">OS</span>
                     <span className="font-semibold text-slate-800">{asset.specs_os} {asset.specs_win_edition}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Phone Specs & MDM */}
+              {(asset.imei_number || asset.phone_number || asset.sim_carrier || String(asset.category_name || '').toLowerCase().includes('phone') || String(asset.category_name || '').toLowerCase().includes('mobile')) && (
+                <div className="sm:col-span-2 bg-blue-50/80 border border-blue-200 p-4 rounded-xl space-y-2.5 text-[11px] shadow-sm">
+                  <div className="flex items-center gap-1.5 border-b border-blue-200/80 pb-2">
+                    <Smartphone className="h-4 w-4 text-blue-600" />
+                    <span className="font-extrabold text-slate-900 text-xs">Mobile Phone & Enterprise MDM Details</span>
+                    {asset.mdm_enrolled && (
+                      <span className="ml-auto inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-100 text-emerald-800 font-black text-[9px] rounded-full shadow-sm">
+                        <ShieldCheck className="h-3 w-3 text-emerald-600" />
+                        <span>MDM Work Mode Active</span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                    <div>
+                      <span className="block text-slate-500 font-extrabold uppercase text-[9px]">IMEI Number</span>
+                      <span className="font-mono font-bold text-slate-900">{asset.imei_number || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="block text-slate-500 font-extrabold uppercase text-[9px]">Phone / SIM Number</span>
+                      <span className="font-extrabold text-blue-700">{asset.phone_number || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="block text-slate-500 font-extrabold uppercase text-[9px]">SIM Network Carrier</span>
+                      <span className="font-semibold text-slate-800">{asset.sim_carrier || 'Corporate Postpaid'}</span>
+                    </div>
+                    <div>
+                      <span className="block text-slate-500 font-extrabold uppercase text-[9px]">MDM Device ID</span>
+                      <span className="font-mono text-slate-700 text-[10px] font-bold">{asset.mdm_device_id || 'N/A'}</span>
+                    </div>
                   </div>
                 </div>
               )}
