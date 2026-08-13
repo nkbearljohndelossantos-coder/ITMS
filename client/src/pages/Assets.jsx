@@ -792,10 +792,10 @@ export default function Assets() {
 
       {/* Image Zoom Lightbox Modal */}
       <ImageZoomModal 
-        isOpen={!!previewImage} 
-        src={previewImage} 
-        title={previewTitle} 
-        onClose={() => setPreviewImage(null)} 
+        isOpen={!!zoomImage} 
+        src={zoomImage?.src} 
+        title={zoomImage?.title} 
+        onClose={() => setZoomImage(null)} 
       />
 
     </div>
