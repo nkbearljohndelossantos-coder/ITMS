@@ -1,8 +1,10 @@
 package com.nkb.itms.agent
 
 import android.app.admin.DeviceAdminReceiver
+import android.app.admin.DevicePolicyManager
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.PersistableBundle
 import android.util.Log
 import android.widget.Toast
@@ -28,13 +30,19 @@ class AdminReceiver : DeviceAdminReceiver() {
         super.onProfileProvisioningComplete(context, intent)
         Log.i(TAG, "Android Enterprise Profile Provisioning Complete.")
 
-        val extras: PersistableBundle? = intent.getParcelableExtra(EXTRA_PROVISIONING_ADMIN_EXTRAS_BUNDLE)
+        val extras: PersistableBundle? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(DevicePolicyManager.EXTRA_PROVISIONING_ADMIN_EXTRAS_BUNDLE, PersistableBundle::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra(DevicePolicyManager.EXTRA_PROVISIONING_ADMIN_EXTRAS_BUNDLE)
+        }
+
         if (extras != null) {
             val serverUrl = extras.getString("serverUrl")
             val enrollmentToken = extras.getString("enrollmentToken")
             Log.i(TAG, "Received provisioning extras -> ServerUrl: $serverUrl, Token: $enrollmentToken")
 
-            if (!serverUrl.isNull_or_Empty() && !enrollmentToken.isNull_or_Empty()) {
+            if (!serverUrl.isNullOrEmpty() && !enrollmentToken.isNullOrEmpty()) {
                 PolicyManager.getInstance(context).saveServerCredentials(serverUrl, enrollmentToken)
             }
         }
@@ -52,4 +60,3 @@ class AdminReceiver : DeviceAdminReceiver() {
     }
 }
 
-private fun String?.isNull_or_Empty(): Boolean = this == null || this.isEmpty()
