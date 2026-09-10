@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Laptop, Smartphone, Calendar, Wrench, ShieldAlert, ArrowLeft, Plus, Edit,
+  Laptop, Smartphone, Radio, Calendar, Wrench, ShieldAlert, ArrowLeft, Plus, Edit,
   Upload, FileText, Trash2, Printer, Download, UserCheck, 
   ArrowRightLeft, RotateCcw, AlertTriangle, ShieldCheck, X, Camera
 } from 'lucide-react';
@@ -752,6 +752,39 @@ export default function AssetDetails() {
                     <div>
                       <span className="block text-slate-500 font-extrabold uppercase text-[9px]">MDM Device ID</span>
                       <span className="font-mono text-slate-700 text-[10px] font-bold">{asset.mdm_device_id || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Two-Way Radio Specs */}
+              {(asset.call_sign || asset.radio_frequency_band || asset.license_number || String(asset.category_name || '').toLowerCase().includes('radio') || String(asset.category_name || '').toLowerCase().includes('walkie')) && (
+                <div className="sm:col-span-2 bg-emerald-50/80 border border-emerald-200 p-4 rounded-xl space-y-2.5 text-[11px] shadow-sm">
+                  <div className="flex items-center gap-1.5 border-b border-emerald-200/80 pb-2">
+                    <Radio className="h-4 w-4 text-emerald-600" />
+                    <span className="font-extrabold text-slate-900 text-xs">Two-Way Radio & Communication Details</span>
+                    {asset.call_sign && (
+                      <span className="ml-auto inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-700 text-white font-black text-[9px] rounded-md shadow-sm">
+                        <span>CALL SIGN: {asset.call_sign}</span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                    <div>
+                      <span className="block text-slate-500 font-extrabold uppercase text-[9px]">Frequency Band</span>
+                      <span className="font-bold text-emerald-700">{asset.radio_frequency_band || 'UHF/VHF'}</span>
+                    </div>
+                    <div>
+                      <span className="block text-slate-500 font-extrabold uppercase text-[9px]">Channels / Power</span>
+                      <span className="font-bold text-slate-900">{asset.radio_channel_count || '16 Ch'} | {asset.radio_power_output || '5W'}</span>
+                    </div>
+                    <div>
+                      <span className="block text-slate-500 font-extrabold uppercase text-[9px]">NTC License No.</span>
+                      <span className="font-semibold text-slate-800">{asset.license_number || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="block text-slate-500 font-extrabold uppercase text-[9px]">Battery Pack S/N</span>
+                      <span className="font-mono text-slate-700 text-[10px] font-bold">{asset.battery_serial || 'N/A'}</span>
                     </div>
                   </div>
                 </div>

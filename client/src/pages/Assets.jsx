@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Plus, Search, Filter, Laptop, Smartphone, AlertCircle, Eye, Edit,
-  Wrench, CheckCircle, HelpCircle, ShieldAlert, X, ZoomIn, Camera, Upload, ShieldCheck
+  Plus, Search, Filter, Laptop, Smartphone, Radio, AlertCircle, Eye, Edit,
+  Wrench, CheckCircle, HelpCircle, ShieldAlert, X, ZoomIn, Camera, Upload, ShieldCheck, Zap, Printer
 } from 'lucide-react';
 import ImageZoomModal from '../components/ImageZoomModal';
 import { optimizeImageQuality } from '../utils/imageOptimizer';
@@ -33,6 +33,14 @@ const assetSchema = z.object({
   sim_carrier: z.string().optional(),
   mdm_enrolled: z.boolean().optional().default(false),
   mdm_device_id: z.string().optional(),
+
+  // Two-Way Radio Specs
+  call_sign: z.string().optional(),
+  radio_frequency_band: z.string().optional(),
+  radio_channel_count: z.string().optional(),
+  radio_power_output: z.string().optional(),
+  license_number: z.string().optional(),
+  battery_serial: z.string().optional(),
   
   // Net
   hostname: z.string().optional(),
@@ -59,17 +67,20 @@ function AssetCardImage({ src, name, categoryName, onZoom }) {
   }, [src]);
 
   const isPhone = String(categoryName || '').toLowerCase().includes('phone') || String(categoryName || '').toLowerCase().includes('mobile');
+  const isRadio = String(categoryName || '').toLowerCase().includes('radio') || String(categoryName || '').toLowerCase().includes('walkie');
 
   if (!src || src === 'null' || src === 'undefined' || hasError) {
     return (
       <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 flex flex-col items-center justify-center p-3 text-slate-300 space-y-1">
-        {isPhone ? (
+        {isRadio ? (
+          <Radio className="h-10 w-10 text-emerald-400 opacity-90 drop-shadow" />
+        ) : isPhone ? (
           <Smartphone className="h-10 w-10 text-blue-400 opacity-90 drop-shadow" />
         ) : (
           <Laptop className="h-10 w-10 text-gold-400 opacity-90 drop-shadow" />
         )}
         <span className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400">
-          {isPhone ? 'Smartphone Asset' : 'Hardware Asset'}
+          {isRadio ? 'Radio Asset' : isPhone ? 'Smartphone Asset' : 'Hardware Asset'}
         </span>
       </div>
     );
@@ -654,8 +665,43 @@ export default function Assets() {
                 </div>
               </div>
 
+              {/* 4. Two-Way Radio & Communication Specifications */}
+              <div className="space-y-4 pt-2 bg-emerald-50/50 p-4 border border-emerald-200/80 rounded-xl">
+                <div className="flex items-center gap-2 border-b border-emerald-200/80 pb-1.5">
+                  <Radio className="h-4 w-4 text-emerald-600" />
+                  <h4 className="text-xs font-black text-slate-900">4. Two-Way Radio & Communication Details</h4>
+                  <span className="ml-auto px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-black text-[9px] uppercase tracking-wider">Radio Asset</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">Call Sign / Designation</label>
+                    <input type="text" {...register('call_sign')} placeholder="e.g. SECURITY-ALPHA-1, DISPATCH" className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">Frequency Band</label>
+                    <input type="text" {...register('radio_frequency_band')} placeholder="UHF (400-470MHz), VHF..." className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">Channel Capacity</label>
+                    <input type="text" {...register('radio_channel_count')} placeholder="16 Channels, 32 Channels..." className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">Power Output (Watts)</label>
+                    <input type="text" {...register('radio_power_output')} placeholder="4W, 5W High Power..." className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">NTC License / Permit Number</label>
+                    <input type="text" {...register('license_number')} placeholder="e.g. NTC-PR2026-8801" className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">Battery Serial / Model</label>
+                    <input type="text" {...register('battery_serial')} placeholder="e.g. PMNN4490A, KNB-57L" className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-4 pt-2">
-                <h4 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-1">4. Network Information</h4>
+                <h4 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-1">5. Network Information</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-slate-500 mb-1">Hostname</label>

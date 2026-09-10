@@ -49,6 +49,9 @@ router.get('/', authenticateToken, requirePermission('assets.view'), async (req,
           .orWhere('assets.brand', 'like', `%${search}%`)
           .orWhere('assets.model', 'like', `%${search}%`)
           .orWhere('assets.serial_number', 'like', `%${search}%`)
+          .orWhere('assets.call_sign', 'like', `%${search}%`)
+          .orWhere('assets.radio_frequency_band', 'like', `%${search}%`)
+          .orWhere('assets.license_number', 'like', `%${search}%`)
           .orWhere('assets.current_location', 'like', `%${search}%`);
       });
     }
@@ -224,6 +227,12 @@ router.post('/', authenticateToken, requirePermission('assets.create'), uploadIm
         sim_carrier: assetData.sim_carrier || null,
         mdm_enrolled: assetData.mdm_enrolled === true || assetData.mdm_enrolled === 'true',
         mdm_device_id: assetData.mdm_device_id || null,
+        radio_frequency_band: assetData.radio_frequency_band || null,
+        radio_channel_count: assetData.radio_channel_count || null,
+        radio_power_output: assetData.radio_power_output || null,
+        call_sign: assetData.call_sign || null,
+        license_number: assetData.license_number || null,
+        battery_serial: assetData.battery_serial || null,
         hostname: assetData.hostname || null,
         mac_address: assetData.mac_address || null,
         ip_address: assetData.ip_address || null,
@@ -393,6 +402,12 @@ router.put('/:id', authenticateToken, requirePermission('assets.update'), upload
         sim_carrier: assetData.sim_carrier !== undefined ? assetData.sim_carrier : oldAsset.sim_carrier,
         mdm_enrolled: assetData.mdm_enrolled !== undefined ? (assetData.mdm_enrolled === true || assetData.mdm_enrolled === 'true') : oldAsset.mdm_enrolled,
         mdm_device_id: assetData.mdm_device_id !== undefined ? assetData.mdm_device_id : oldAsset.mdm_device_id,
+        radio_frequency_band: assetData.radio_frequency_band !== undefined ? assetData.radio_frequency_band : oldAsset.radio_frequency_band,
+        radio_channel_count: assetData.radio_channel_count !== undefined ? assetData.radio_channel_count : oldAsset.radio_channel_count,
+        radio_power_output: assetData.radio_power_output !== undefined ? assetData.radio_power_output : oldAsset.radio_power_output,
+        call_sign: assetData.call_sign !== undefined ? assetData.call_sign : oldAsset.call_sign,
+        license_number: assetData.license_number !== undefined ? assetData.license_number : oldAsset.license_number,
+        battery_serial: assetData.battery_serial !== undefined ? assetData.battery_serial : oldAsset.battery_serial,
         hostname: assetData.hostname !== undefined ? assetData.hostname : oldAsset.hostname,
         mac_address: assetData.mac_address !== undefined ? assetData.mac_address : oldAsset.mac_address,
         ip_address: assetData.ip_address !== undefined ? assetData.ip_address : oldAsset.ip_address,

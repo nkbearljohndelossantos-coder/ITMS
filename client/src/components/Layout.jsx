@@ -25,6 +25,7 @@ export default function Layout() {
   const menuItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard, perm: 'dashboard.view' },
     { name: 'IT Assets', path: '/assets', icon: Laptop, perm: 'assets.view' },
+    { name: 'Two-Way Radios', path: '/two-way-radios', icon: Radio, perm: 'assets.view' },
     { name: 'Help Desk', path: '/tickets', icon: Ticket, perm: 'tickets.create' }, // available to employees and staff
     { name: 'Repair Records', path: '/repairs', icon: Wrench, perm: 'repairs.view' },
     { name: 'Preventive Maint.', path: '/maintenance', icon: Calendar, perm: 'maintenance.view' },

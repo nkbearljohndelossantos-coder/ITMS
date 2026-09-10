@@ -13,6 +13,7 @@ import ChangePassword from './pages/ChangePassword';
 
 import Dashboard from './pages/Dashboard';
 import Assets from './pages/Assets';
+import TwoWayRadios from './pages/TwoWayRadios';
 import AssetDetails from './pages/AssetDetails';
 import Tickets from './pages/Tickets';
 import TicketDetails from './pages/TicketDetails';
@@ -145,6 +146,11 @@ export default function App() {
             <Route path="assets/:id" element={
               <PermissionRoute permission="assets.view">
                 <AssetDetails />
+              </PermissionRoute>
+            } />
+            <Route path="two-way-radios" element={
+              <PermissionRoute permission="assets.view">
+                <TwoWayRadios />
               </PermissionRoute>
             } />
 
