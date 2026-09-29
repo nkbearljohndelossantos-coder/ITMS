@@ -52,6 +52,7 @@ router.get('/', authenticateToken, requirePermission('assets.view'), async (req,
           .orWhere('assets.call_sign', 'like', `%${search}%`)
           .orWhere('assets.radio_frequency_band', 'like', `%${search}%`)
           .orWhere('assets.license_number', 'like', `%${search}%`)
+          .orWhere('assets.mouse_connectivity', 'like', `%${search}%`)
           .orWhere('assets.current_location', 'like', `%${search}%`);
       });
     }
@@ -233,6 +234,10 @@ router.post('/', authenticateToken, requirePermission('assets.create'), uploadIm
         call_sign: assetData.call_sign || null,
         license_number: assetData.license_number || null,
         battery_serial: assetData.battery_serial || null,
+        mouse_connectivity: assetData.mouse_connectivity || null,
+        mouse_sensor_dpi: assetData.mouse_sensor_dpi || null,
+        mouse_buttons_count: assetData.mouse_buttons_count || null,
+        mouse_hand_orientation: assetData.mouse_hand_orientation || null,
         hostname: assetData.hostname || null,
         mac_address: assetData.mac_address || null,
         ip_address: assetData.ip_address || null,
@@ -408,6 +413,10 @@ router.put('/:id', authenticateToken, requirePermission('assets.update'), upload
         call_sign: assetData.call_sign !== undefined ? assetData.call_sign : oldAsset.call_sign,
         license_number: assetData.license_number !== undefined ? assetData.license_number : oldAsset.license_number,
         battery_serial: assetData.battery_serial !== undefined ? assetData.battery_serial : oldAsset.battery_serial,
+        mouse_connectivity: assetData.mouse_connectivity !== undefined ? assetData.mouse_connectivity : oldAsset.mouse_connectivity,
+        mouse_sensor_dpi: assetData.mouse_sensor_dpi !== undefined ? assetData.mouse_sensor_dpi : oldAsset.mouse_sensor_dpi,
+        mouse_buttons_count: assetData.mouse_buttons_count !== undefined ? assetData.mouse_buttons_count : oldAsset.mouse_buttons_count,
+        mouse_hand_orientation: assetData.mouse_hand_orientation !== undefined ? assetData.mouse_hand_orientation : oldAsset.mouse_hand_orientation,
         hostname: assetData.hostname !== undefined ? assetData.hostname : oldAsset.hostname,
         mac_address: assetData.mac_address !== undefined ? assetData.mac_address : oldAsset.mac_address,
         ip_address: assetData.ip_address !== undefined ? assetData.ip_address : oldAsset.ip_address,

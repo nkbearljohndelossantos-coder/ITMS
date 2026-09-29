@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Laptop, Smartphone, Radio, Calendar, Wrench, ShieldAlert, ArrowLeft, Plus, Edit,
+  Laptop, Smartphone, Radio, Mouse, Calendar, Wrench, ShieldAlert, ArrowLeft, Plus, Edit,
   Upload, FileText, Trash2, Printer, Download, UserCheck, 
   ArrowRightLeft, RotateCcw, AlertTriangle, ShieldCheck, X, Camera
 } from 'lucide-react';
@@ -785,6 +785,37 @@ export default function AssetDetails() {
                     <div>
                       <span className="block text-slate-500 font-extrabold uppercase text-[9px]">Battery Pack S/N</span>
                       <span className="font-mono text-slate-700 text-[10px] font-bold">{asset.battery_serial || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Computer Mouse Specs */}
+              {(asset.mouse_connectivity || asset.mouse_sensor_dpi || String(asset.category_name || '').toLowerCase().includes('mouse')) && (
+                <div className="sm:col-span-2 bg-purple-50/80 border border-purple-200 p-4 rounded-xl space-y-2.5 text-[11px] shadow-sm">
+                  <div className="flex items-center gap-1.5 border-b border-purple-200/80 pb-2">
+                    <Mouse className="h-4 w-4 text-purple-600" />
+                    <span className="font-extrabold text-slate-900 text-xs">Computer Mouse & Peripheral Details</span>
+                    <span className="ml-auto inline-flex items-center gap-1 px-2.5 py-0.5 bg-purple-700 text-white font-black text-[9px] rounded-md shadow-sm">
+                      <span>PERIPHERAL ASSET</span>
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                    <div>
+                      <span className="block text-slate-500 font-extrabold uppercase text-[9px]">Connectivity</span>
+                      <span className="font-bold text-purple-700">{asset.mouse_connectivity || 'Wired USB / Wireless'}</span>
+                    </div>
+                    <div>
+                      <span className="block text-slate-500 font-extrabold uppercase text-[9px]">Sensor DPI</span>
+                      <span className="font-bold text-slate-900">{asset.mouse_sensor_dpi || 'Standard Optical'}</span>
+                    </div>
+                    <div>
+                      <span className="block text-slate-500 font-extrabold uppercase text-[9px]">Buttons & Features</span>
+                      <span className="font-semibold text-slate-800">{asset.mouse_buttons_count || 'Standard Buttons'}</span>
+                    </div>
+                    <div>
+                      <span className="block text-slate-500 font-extrabold uppercase text-[9px]">Orientation</span>
+                      <span className="font-mono text-slate-700 text-[10px] font-bold">{asset.mouse_hand_orientation || 'Ambidextrous'}</span>
                     </div>
                   </div>
                 </div>

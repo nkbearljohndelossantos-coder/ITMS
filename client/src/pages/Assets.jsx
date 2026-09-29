@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Plus, Search, Filter, Laptop, Smartphone, Radio, AlertCircle, Eye, Edit,
+  Plus, Search, Filter, Laptop, Smartphone, Radio, Mouse, AlertCircle, Eye, Edit,
   Wrench, CheckCircle, HelpCircle, ShieldAlert, X, ZoomIn, Camera, Upload, ShieldCheck, Zap, Printer
 } from 'lucide-react';
 import ImageZoomModal from '../components/ImageZoomModal';
@@ -41,6 +41,12 @@ const assetSchema = z.object({
   radio_power_output: z.string().optional(),
   license_number: z.string().optional(),
   battery_serial: z.string().optional(),
+
+  // Computer Mouse Specs
+  mouse_connectivity: z.string().optional(),
+  mouse_sensor_dpi: z.string().optional(),
+  mouse_buttons_count: z.string().optional(),
+  mouse_hand_orientation: z.string().optional(),
   
   // Net
   hostname: z.string().optional(),
@@ -68,11 +74,14 @@ function AssetCardImage({ src, name, categoryName, onZoom }) {
 
   const isPhone = String(categoryName || '').toLowerCase().includes('phone') || String(categoryName || '').toLowerCase().includes('mobile');
   const isRadio = String(categoryName || '').toLowerCase().includes('radio') || String(categoryName || '').toLowerCase().includes('walkie');
+  const isMouse = String(categoryName || '').toLowerCase().includes('mouse');
 
   if (!src || src === 'null' || src === 'undefined' || hasError) {
     return (
       <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 flex flex-col items-center justify-center p-3 text-slate-300 space-y-1">
-        {isRadio ? (
+        {isMouse ? (
+          <Mouse className="h-10 w-10 text-purple-400 opacity-90 drop-shadow" />
+        ) : isRadio ? (
           <Radio className="h-10 w-10 text-emerald-400 opacity-90 drop-shadow" />
         ) : isPhone ? (
           <Smartphone className="h-10 w-10 text-blue-400 opacity-90 drop-shadow" />
@@ -80,7 +89,7 @@ function AssetCardImage({ src, name, categoryName, onZoom }) {
           <Laptop className="h-10 w-10 text-gold-400 opacity-90 drop-shadow" />
         )}
         <span className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400">
-          {isRadio ? 'Radio Asset' : isPhone ? 'Smartphone Asset' : 'Hardware Asset'}
+          {isMouse ? 'Mouse Asset' : isRadio ? 'Radio Asset' : isPhone ? 'Smartphone Asset' : 'Hardware Asset'}
         </span>
       </div>
     );
@@ -700,8 +709,35 @@ export default function Assets() {
                 </div>
               </div>
 
+              {/* 5. Computer Mouse & Peripheral Specifications */}
+              <div className="space-y-4 pt-2 bg-purple-50/50 p-4 border border-purple-200/80 rounded-xl">
+                <div className="flex items-center gap-2 border-b border-purple-200/80 pb-1.5">
+                  <Mouse className="h-4 w-4 text-purple-600" />
+                  <h4 className="text-xs font-black text-slate-900">5. Computer Mouse & Peripheral Details</h4>
+                  <span className="ml-auto px-2 py-0.5 bg-purple-100 text-purple-800 rounded font-black text-[9px] uppercase tracking-wider">Mouse Asset</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">Connectivity Type</label>
+                    <input type="text" {...register('mouse_connectivity')} placeholder="e.g. Logi Bolt 2.4GHz + Bluetooth LE, Wired USB-A" className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">Sensor Resolution (DPI)</label>
+                    <input type="text" {...register('mouse_sensor_dpi')} placeholder="e.g. 8000 DPI Darkfield, 1000 DPI Optical" className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">Buttons Count & Features</label>
+                    <input type="text" {...register('mouse_buttons_count')} placeholder="e.g. 7 Programmable Buttons + Scroll Click" className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">Hand Orientation / Form Factor</label>
+                    <input type="text" {...register('mouse_hand_orientation')} placeholder="e.g. Ergonomic Right-Handed, Ambidextrous" className="w-full p-2 border border-slate-350 rounded bg-white text-slate-900" />
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-4 pt-2">
-                <h4 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-1">5. Network Information</h4>
+                <h4 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-1">6. Network Information</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-slate-500 mb-1">Hostname</label>
