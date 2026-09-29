@@ -102,6 +102,40 @@ router.get('/', authenticateToken, requirePermission('assets.view'), async (req,
   }
 });
 
+// Fast Public QR Scan Asset Specs Lookup (No Token Required for Scanning Stickers)
+router.get('/public-specs/:code', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const isSqlite = db.client.config.client === 'sqlite3';
+    const concatEmpName = isSqlite 
+      ? db.raw("TRIM(COALESCE(employees.first_name, '') || ' ' || COALESCE(employees.last_name, '')) as employee_name") 
+      : db.raw("TRIM(CONCAT(COALESCE(employees.first_name, ''), ' ', COALESCE(employees.last_name, ''))) as employee_name");
+
+    const asset = await db('assets')
+      .leftJoin('asset_categories', 'assets.category_id', 'asset_categories.id')
+      .leftJoin('departments', 'assets.department_id', 'departments.id')
+      .leftJoin('employees', 'assets.employee_id', 'employees.id')
+      .select(
+        'assets.*',
+        'asset_categories.name as category_name',
+        'departments.name as department_name',
+        concatEmpName
+      )
+      .where('assets.asset_code', code)
+      .orWhere('assets.id', code)
+      .first();
+
+    if (!asset) {
+      return res.status(404).json({ success: false, message: 'Asset not found' });
+    }
+
+    return res.json({ success: true, data: asset });
+  } catch (err) {
+    logger.error(`Public asset spec error: ${err.message}`);
+    return res.status(500).json({ success: false, message: 'Failed to fetch asset specifications' });
+  }
+});
+
 // Get single asset profile by ID or Asset Code
 router.get('/:id', authenticateToken, requirePermission('assets.view'), async (req, res) => {
   const { id } = req.params;

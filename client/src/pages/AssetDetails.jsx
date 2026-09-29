@@ -62,6 +62,7 @@ export default function AssetDetails() {
   const [returnModalOpen, setReturnModalOpen] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [stickerModalOpen, setStickerModalOpen] = useState(false);
+  const [stickerMode, setStickerMode] = useState('full'); // 'full' or 'qr_only'
 
   // Form / File upload states
   const [saving, setSaving] = useState(false);
@@ -342,10 +343,50 @@ export default function AssetDetails() {
     return 'UNASSIGNED / IN STOCK';
   };
 
-  const handlePrintSticker = () => {
+  const handlePrintSticker = (modeOverride) => {
     if (!asset) return;
+    const mode = modeOverride || stickerMode || 'full';
     const printWindow = window.open('', '_blank');
     const logoUrl = `${window.location.origin}/nkb-logo.png`;
+    const scanUrl = `${window.location.origin}/scan/${asset.asset_code}`;
+    const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(scanUrl)}`;
+
+    if (mode === 'qr_only') {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>QR Specs Sticker - ${asset.asset_code}</title>
+            <style>
+              @page { size: 50mm 50mm; margin: 0mm; }
+              * { box-sizing: border-box; }
+              html, body {
+                width: 50mm; height: 50mm; margin: 0; padding: 2mm;
+                font-family: Arial, sans-serif; background: #ffffff; color: #000000;
+                display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+                text-align: center; overflow: hidden;
+              }
+              .header { font-size: 6.5pt; font-weight: 900; letter-spacing: 0.5px; border-bottom: 1px solid #000; padding-bottom: 1mm; margin-bottom: 1mm; width: 100%; text-transform: uppercase; }
+              .qr-box { flex: 1; display: flex; align-items: center; justify-content: center; margin: 1mm 0; }
+              .qr-img { width: 32mm; height: 32mm; object-fit: contain; }
+              .code { font-size: 9pt; font-weight: 900; font-family: monospace, Arial; margin-top: 0.5mm; }
+              .footer { font-size: 5pt; font-weight: 800; color: #333; margin-top: 0.5mm; }
+            </style>
+          </head>
+          <body onload="window.print(); window.close();">
+            <div class="header">🛡️ NKB IT ASSET SPECIFICATIONS</div>
+            <div class="qr-box">
+              <img src="${qrImgUrl}" class="qr-img" alt="Asset Specs QR" />
+            </div>
+            <div class="code">${asset.asset_code}</div>
+            <div class="footer">SCAN CAMERA FOR SPECS 📱</div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      return;
+    }
+
     const modelText = getAssetModelText();
     const specsText = getAssetSpecsText();
     const assignedToText = getAssignedToText();
@@ -1575,7 +1616,7 @@ export default function AssetDetails() {
             <div className="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <Printer className="h-5 w-5 text-gold-500" />
-                <h3 className="font-bold text-sm">Professional Asset Tag Preview (70mm x 40mm)</h3>
+                <h3 className="font-bold text-sm">Print Asset Label & Scannable QR Code Sticker</h3>
               </div>
               <button onClick={() => setStickerModalOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
                 <X className="h-5 w-5" />
@@ -1584,76 +1625,127 @@ export default function AssetDetails() {
             
             <div className="p-6 space-y-4 bg-slate-100 flex flex-col items-center select-none">
               
-              <div className="text-xs font-medium flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-1.5 rounded-lg">
-                <span>✨ Professional Layout (No QR Code): <strong>70mm x 40mm</strong> (High Visibility Details)</span>
+              {/* Sticker Mode Switcher */}
+              <div className="flex p-1 bg-slate-200 rounded-xl w-full max-w-md font-bold text-xs">
+                <button
+                  type="button"
+                  onClick={() => setStickerMode('full')}
+                  className={`flex-1 py-2 rounded-lg text-center transition-all cursor-pointer ${
+                    stickerMode === 'full' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-700 hover:text-slate-900'
+                  }`}
+                >
+                  📄 Full Asset Tag (70x40mm)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStickerMode('qr_only')}
+                  className={`flex-1 py-2 rounded-lg text-center transition-all cursor-pointer ${
+                    stickerMode === 'qr_only' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-700 hover:text-slate-900'
+                  }`}
+                >
+                  📱 QR Code ONLY (Scan Specs)
+                </button>
               </div>
 
-              {/* Exact 70mm x 40mm Scaled Container Preview */}
-              <div className="bg-white border-2 border-black p-3.5 rounded-sm shadow-lg w-[420px] h-[240px] text-black font-sans flex flex-col justify-between overflow-hidden">
-                
-                {/* Top Header */}
-                <div className="flex justify-between items-center border-b border-black pb-1.5 mb-1.5">
-                  <img src="/nkb-logo.png" alt="NKB Logo" className="h-7 object-contain" />
-                  <div className="text-right">
-                    <span className="block text-[8px] font-extrabold text-slate-700 tracking-wider uppercase leading-none">PROPERTY ASSET TAG</span>
-                    <span className="block text-sm font-black font-mono leading-tight">{asset.asset_code}</span>
-                  </div>
-                </div>
-
-                <div className="flex-1 flex flex-col justify-between overflow-hidden space-y-1">
-                  
-                  {/* Name */}
-                  <div>
-                    <span className="block text-[8.5px] font-extrabold text-slate-700 uppercase tracking-tight leading-none mb-0.5">Asset Name :</span>
-                    <span className="block text-[13px] font-black uppercase text-black leading-tight truncate">{asset.name}</span>
+              {stickerMode === 'full' ? (
+                <>
+                  <div className="text-xs font-medium flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-1.5 rounded-lg">
+                    <span>✨ Full Property Asset Tag: <strong>70mm x 40mm</strong> (High Visibility Specifications)</span>
                   </div>
 
-                  {/* Model & Specs Box */}
-                  {(getAssetModelText() || getAssetSpecsText()) && (
-                    <div className="bg-slate-100 border-l-2 border-black px-1.5 py-1 text-[8.5px] font-semibold leading-tight max-h-[36px] overflow-hidden rounded-r-xs">
-                      <span className="block text-[7px] font-extrabold text-slate-600 uppercase mb-0.5">Model & Hardware Specs :</span>
-                      <div className="text-slate-900 font-bold line-clamp-1">
-                        {getAssetModelText() && <span>Model: {getAssetModelText()}</span>}
-                        {getAssetModelText() && getAssetSpecsText() && <span> | </span>}
-                        {getAssetSpecsText() && <span>Specs: {getAssetSpecsText()}</span>}
+                  {/* Exact 70mm x 40mm Scaled Container Preview */}
+                  <div className="bg-white border-2 border-black p-3.5 rounded-sm shadow-lg w-[420px] h-[240px] text-black font-sans flex flex-col justify-between overflow-hidden">
+                    
+                    {/* Top Header */}
+                    <div className="flex justify-between items-center border-b border-black pb-1.5 mb-1.5">
+                      <img src="/nkb-logo.png" alt="NKB Logo" className="h-7 object-contain" />
+                      <div className="text-right">
+                        <span className="block text-[8px] font-extrabold text-slate-700 tracking-wider uppercase leading-none">PROPERTY ASSET TAG</span>
+                        <span className="block text-sm font-black font-mono leading-tight">{asset.asset_code}</span>
                       </div>
                     </div>
-                  )}
 
-                  {/* 3-Column Grid */}
-                  <div className="grid grid-cols-3 gap-2 text-[9px] font-black pt-0.5">
-                    <div>
-                      <span className="text-[7.5px] font-extrabold text-slate-600 uppercase block leading-none">Category</span>
-                      <span className="uppercase truncate block text-slate-950 mt-0.5">{asset.category_name || 'EQUIPMENT'}</span>
+                    <div className="flex-1 flex flex-col justify-between overflow-hidden space-y-1">
+                      
+                      {/* Name */}
+                      <div>
+                        <span className="block text-[8.5px] font-extrabold text-slate-700 uppercase tracking-tight leading-none mb-0.5">Asset Name :</span>
+                        <span className="block text-[13px] font-black uppercase text-black leading-tight truncate">{asset.name}</span>
+                      </div>
+
+                      {/* Model & Specs Box */}
+                      {(getAssetModelText() || getAssetSpecsText()) && (
+                        <div className="bg-slate-100 border-l-2 border-black px-1.5 py-1 text-[8.5px] font-semibold leading-tight max-h-[36px] overflow-hidden rounded-r-xs">
+                          <span className="block text-[7px] font-extrabold text-slate-600 uppercase mb-0.5">Model & Hardware Specs :</span>
+                          <div className="text-slate-900 font-bold line-clamp-1">
+                            {getAssetModelText() && <span>Model: {getAssetModelText()}</span>}
+                            {getAssetModelText() && getAssetSpecsText() && <span> | </span>}
+                            {getAssetSpecsText() && <span>Specs: {getAssetSpecsText()}</span>}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 3-Column Grid */}
+                      <div className="grid grid-cols-3 gap-2 text-[9px] font-black pt-0.5">
+                        <div>
+                          <span className="text-[7.5px] font-extrabold text-slate-600 uppercase block leading-none">Category</span>
+                          <span className="uppercase truncate block text-slate-950 mt-0.5">{asset.category_name || 'EQUIPMENT'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[7.5px] font-extrabold text-slate-600 uppercase block leading-none">Serial Number</span>
+                          <span className="uppercase truncate block text-slate-950 mt-0.5">{asset.serial_number || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[7.5px] font-extrabold text-slate-600 uppercase block leading-none">Condition</span>
+                          <span className="uppercase truncate block text-slate-950 mt-0.5">{asset.condition || 'GOOD'}</span>
+                        </div>
+                      </div>
+
+                      {/* Assigned To */}
+                      <div className="border-t border-black/80 pt-1 text-[8.5px] leading-tight truncate">
+                        <span className="font-black mr-1 uppercase">ASSIGNED TO:</span>
+                        <span className="font-bold text-black uppercase">
+                          {getAssignedToText()}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-[7.5px] font-extrabold text-slate-600 uppercase block leading-none">Serial Number</span>
-                      <span className="uppercase truncate block text-slate-950 mt-0.5">{asset.serial_number || 'N/A'}</span>
+
+                    {/* Footer Banner */}
+                    <div className="border-t border-black pt-1 mt-1 text-center">
+                      <h5 className="font-black text-[9.5px] uppercase tracking-wider leading-none">PROPERTY OF NKB MANUFACTURING CORP.</h5>
+                      <p className="font-bold text-[7.5px] uppercase text-slate-700 leading-none mt-0.5">
+                        DO NOT REMOVE OR DEFACE &nbsp;|&nbsp; IT MANAGEMENT SYSTEM
+                      </p>
                     </div>
-                    <div>
-                      <span className="text-[7.5px] font-extrabold text-slate-600 uppercase block leading-none">Condition</span>
-                      <span className="uppercase truncate block text-slate-950 mt-0.5">{asset.condition || 'GOOD'}</span>
-                    </div>
+
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-xs font-medium flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-800 px-3 py-1.5 rounded-lg">
+                    <span>📱 Standalone QR Code Sticker: <strong>50mm x 50mm</strong> (Scan with Camera to view Full Specs)</span>
                   </div>
 
-                  {/* Assigned To */}
-                  <div className="border-t border-black/80 pt-1 text-[8.5px] leading-tight truncate">
-                    <span className="font-black mr-1 uppercase">ASSIGNED TO:</span>
-                    <span className="font-bold text-black uppercase">
-                      {getAssignedToText()}
+                  {/* QR Code ONLY Preview */}
+                  <div className="bg-white border-2 border-slate-900 p-4 rounded-xl shadow-lg w-[240px] h-[240px] flex flex-col items-center justify-between text-center font-sans">
+                    <span className="text-[9px] font-black text-slate-900 uppercase tracking-wider border-b border-slate-300 pb-1 w-full">
+                      🛡️ NKB IT ASSET SPECIFICATIONS
+                    </span>
+                    <div className="p-1 bg-white rounded-lg border border-slate-200 shadow-inner my-1">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`${window.location.origin}/scan/${asset.asset_code}`)}`}
+                        alt="QR Code"
+                        className="w-28 h-28 object-contain"
+                      />
+                    </div>
+                    <span className="font-mono font-black text-xs text-slate-900 leading-none">{asset.asset_code}</span>
+                    <span className="text-[8px] font-bold text-blue-600 uppercase tracking-tight">
+                      SCAN CAMERA FOR SPECS 📱
                     </span>
                   </div>
-                </div>
+                </>
+              )}
 
-                {/* Footer Banner */}
-                <div className="border-t border-black pt-1 mt-1 text-center">
-                  <h5 className="font-black text-[9.5px] uppercase tracking-wider leading-none">PROPERTY OF NKB MANUFACTURING CORP.</h5>
-                  <p className="font-bold text-[7.5px] uppercase text-slate-700 leading-none mt-0.5">
-                    DO NOT REMOVE OR DEFACE &nbsp;|&nbsp; IT MANAGEMENT SYSTEM
-                  </p>
-                </div>
-
-              </div>
             </div>
 
             <div className="px-6 py-4 bg-white border-t flex justify-end gap-3">
@@ -1666,11 +1758,11 @@ export default function AssetDetails() {
               </button>
               <button 
                 type="button" 
-                onClick={handlePrintSticker} 
-                className="px-5 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-gold-650 flex items-center gap-1.5 cursor-pointer shadow transition-colors"
+                onClick={() => handlePrintSticker(stickerMode)} 
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow transition-colors"
               >
                 <Printer className="h-4 w-4" />
-                <span>Print Sticker Now</span>
+                <span>Print {stickerMode === 'qr_only' ? 'QR Code Sticker' : 'Full Asset Tag'}</span>
               </button>
             </div>
           </div>

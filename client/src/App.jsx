@@ -10,6 +10,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import ForceChangePassword from './pages/ForceChangePassword';
 import ChangePassword from './pages/ChangePassword';
+import PublicAssetSpecs from './pages/PublicAssetSpecs';
 
 import Dashboard from './pages/Dashboard';
 import Assets from './pages/Assets';
@@ -118,6 +119,10 @@ export default function App() {
           <Route path="/force-change-password" element={
             <ForceChangePassword />
           } />
+
+          {/* Public Fast QR Code Scan Asset Spec Lookup */}
+          <Route path="/scan/:code" element={<PublicAssetSpecs />} />
+          <Route path="/assets/scan/:code" element={<PublicAssetSpecs />} />
 
           {/* ==========================================
               PROTECTED SHELL PATHWAYS
