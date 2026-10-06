@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const QRCode = require("qrcode");
-const { v4: uuidv4 } = require("uuid");
+const { randomUUID } = require("crypto");
 const db = require("../config/db");
 const logger = require("../utils/logger");
 const { buildDevicePolicyPayload } = require("../utils/mdmPolicy");
@@ -128,7 +128,7 @@ router.post("/enrollment/create", async (req, res) => {
       ? await db("webfilter_policies").where("id", policyId).first()
       : await db("webfilter_policies").where("is_active", true).first();
 
-    const enrollmentId = `ENROLL-${uuidv4().substring(0, 8).toUpperCase()}`;
+    const enrollmentId = `ENROLL-${randomUUID().substring(0, 8).toUpperCase()}`;
     const token = jwt.sign(
       {
         enrollmentId,

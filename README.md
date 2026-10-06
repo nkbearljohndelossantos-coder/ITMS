@@ -1,212 +1,144 @@
-# NKB IT Management System (ITMS)
+# NKB Manufacturing Centralized API Platform
 
-The **NKB IT Management System** is a complete, functional, production-ready corporate IT asset and help desk ticketing web application. It handles asset registries, custody assignments, service desk tickets, preventative maintenance cycles, spare parts warehouses, software licenses compliance, and audit logs.
-
----
-
-## 1. Project Architecture
-
-The repository is organized as a workspace:
-*   `/server`: Node.js, Express, Socket.IO backend. Uses Knex query builder with migrations and seeds supporting SQLite3 (default for local dev) and MySQL (production target).
-*   `/client`: React.js web application built with Vite, React Router, Tailwind CSS, Axios, and Recharts.
+A standalone, production-grade, enterprise-wide API Gateway & Service Platform designed to safely serve internal NKB applications (`NKB-DCC`, `NKB-PPE`, `NKB-FORMULATION`, `NKB-ITMS`) and authorized third-party external applications.
 
 ---
 
-## 2. Prerequisites
+## 🌟 Key Architecture & Features
 
-Ensure you have the following installed in your host environment:
-*   **Node.js** version `v18.0.0` or higher (verified on `v26.3.1`)
-*   **npm** version `9.0.0` or higher
-*   **SQLite3** (compiled on-the-fly, no global installation needed)
-*   **MySQL Server** (optional, recommended for production staging)
-
----
-
-## 3. Installation & Local Development Setup
-
-Follow these steps to configure the system locally:
-
-### Step 1: Install Dependencies
-From the root workspace directory, install the required packages:
-```bash
-# Install root, client, and server dependencies
-npm install
-npm run install-all
+```
+External Apps / Frontends
+           ↓
+        HTTPS
+           ↓
+    Nginx Reverse Proxy (api.nkbmanufacturing.com)
+           ↓
+   Request ID Correlation (X-Request-Id UUID)
+           ↓
+ Bearer API Key Authentication (nkb_live_...) + SHA-256 Hashing
+           ↓
+ Sliding-Window Rate Limiting (100 req/min, HTTP 429 JSON)
+           ↓
+ Granular RBAC Scope Validation (documents:read, assets:create, etc.)
+           ↓
+ Zod Schema Validation (HTTP 422 JSON)
+           ↓
+ Idempotency Key Processing (Idempotency-Key header caching)
+           ↓
+      Business Logic
+           ↓
+  Database (PostgreSQL / SQLite)
+           ↓
+ Permanent Async Audit Logs & Security Event Tracking
 ```
 
-### Step 2: Configure Environment Variables
-Create a `.env` file in the `/server` directory. You can duplicate the provided `.env.example`:
-```ini
+### Core Specifications
+1. **Standalone API Gateway Architecture**: Completely decoupled from individual web application frontends. Serves endpoints cleanly under versioned `/api/v1/` routes.
+2. **Cryptographically Hashed API Keys**:
+   - Raw keys (`nkb_live_xxxxxxxxxxxxxxxxxxxxxxxxx`) displayed **ONLY ONCE** upon generation.
+   - Database stores peppered SHA-256 hashes (`hashApiKey(rawKey)`).
+   - Admin UI displays non-sensitive masked format (`nkb_live_**************7X92`).
+3. **Granular RBAC Scopes**:
+   - Scope authorization middleware (`requireScope('documents:read')`).
+   - Least-privilege access enforcement.
+4. **Per-Client Rate Limiting**:
+   - Custom rate limits per application.
+   - Standard headers returned: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After`.
+   - Returns HTTP 429 JSON response on breach without leaking server details.
+5. **Request Correlation Tracking**:
+   - Every request is tagged with a unique `X-Request-Id` UUID, propagated to logs and client responses.
+6. **Standardized Response Envelopes**:
+   - Success: `{ "success": true, "data": {...}, "meta": { "requestId": "..." } }`
+   - Error: `{ "success": false, "error": { "code": "...", "message": "..." }, "meta": { "requestId": "..." } }`
+7. **Idempotency Key Support**:
+   - Pass `Idempotency-Key: <UUID>` header for state-mutating requests (POST, PUT, PATCH).
+   - Duplicate requests return identical cached responses without re-executing logic.
+8. **Interactive OpenAPI 3.0 Documentation**:
+   - Available live at `https://api.nkbmanufacturing.com/docs`.
+   - Raw JSON spec at `/docs/openapi.json`.
+9. **React Admin Management Console**:
+   - Located at `/api-platform` in the ITMS Navigation Sidebar under **Administration > API Gateway Platform**.
+   - Live system health metrics, API client app registration, raw key generation, key rotation/revocation, live audit log viewer, and scope dictionary.
+
+---
+
+## 🚀 Quick Start Guide
+
+### 1. Environment Setup
+Copy the template configuration:
+```bash
+cp server/.env.example server/.env
+```
+
+Set secret pepper and JWT keys:
+```env
+NODE_ENV=production
 PORT=5000
-NODE_ENV=development
-CLIENT_URL=http://localhost:5173
-
-# Database (SQLite default for development)
-DB_CLIENT=sqlite3
-DB_FILE=./data/nkb_itms.sqlite
-
-# JWT Cryptography secrets
-JWT_SECRET=super_secret_jwt_key_123456_nkb_itms
-JWT_REFRESH_SECRET=super_secret_refresh_jwt_key_123456_nkb_itms
-JWT_ACCESS_EXPIRY=1h
-JWT_REFRESH_EXPIRY=7d
-
-# Initial Super Admin (Seeded on first migration)
-INITIAL_SUPER_ADMIN_USERNAME=admin
-INITIAL_SUPER_ADMIN_PASSWORD=AdminPassword123!
-INITIAL_SUPER_ADMIN_EMAIL=admin@nkb-itms.com
+API_KEY_PEPPER=your_secret_pepper_string_here
+JWT_SECRET=your_jwt_secret_here
+DATABASE_URL=postgresql://nkb_user:password@localhost:5432/nkb_api_platform
 ```
 
-### Step 3: Run Database Migrations & Seeds
-Execute the Knex migrations to build the tables and run the seed script to populate default categories, permission matrix blocks, and admin users:
+### 2. Database Migration & Seeding
 ```bash
 cd server
-# Run tables schema migration
 npm run migrate
-
-# Run initial seed data
-npm run seed
+node scripts/run_api_platform_migration.js
 ```
 
-### Step 4: Run the Application
-Start the development servers for both backend and frontend:
+### 3. Start Development Server
 ```bash
-# In the root directory, run both servers concurrently:
-npm run dev
+npm run dev --prefix server
 ```
-*   **Backend Server**: runs on [http://localhost:5000](http://localhost:5000)
-*   **Vite Frontend Client**: runs on [http://localhost:5173](http://localhost:5173) (auto-proxies `/api` and `/socket.io` calls to port 5000)
 
----
-
-## 4. Running Automated Tests
-
-A Jest + Supertest integration suite is available to verify core endpoint mechanics. It sets up an isolated SQLite database (`/server/data/nkb_itms_test.sqlite`), performs migrations, and seeds testing records automatically.
-
-To execute the test suite:
+### 4. Build Production Client
 ```bash
-cd server
-npm run test
-```
-The test verifies:
-1.  **Authentication**: Correct and incorrect password checks.
-2.  **Asset CRUD**: Registering new assets and listing inventory details.
-3.  **Custody Release/Return**: Checking out assets, updating conditions, and return processes.
-4.  **Support Help Desk**: Creating tickets, assigning staff technicians, and resolution actions.
-5.  **Inventory Stock Card Deduction**: Registering parts, stocking-in supplies, and deducting them on hardware repairs.
-6.  **Software Seats Threshold**: Enforcing seat capacity limits on concurrent assignments.
-
----
-
-## 5. Production Deployment Guide
-
-For deploying to VPS host environments:
-
-### Database (MySQL Setup)
-1.  Create a MySQL database schema e.g. `nkb_itms`.
-2.  Configure `/server/.env` parameters:
-    ```ini
-    NODE_ENV=production
-    DB_CLIENT=mysql2
-    DB_HOST=127.0.0.1
-    DB_USER=your_db_user
-    DB_PASSWORD=your_secure_password
-    DB_DATABASE=nkb_itms
-    ```
-3.  Run migrations and seeds to construct the schema on MySQL:
-    ```bash
-    cd server
-    npm run migrate
-    npm run seed
-    ```
-
-### Process Management (PM2)
-Use PM2 to run the Express backend as a persistent background daemon:
-1.  Install PM2 globally:
-    ```bash
-    npm install -g pm2
-    ```
-2.  Start the server entry point:
-    ```bash
-    cd server
-    pm2 start src/server.js --name "nkb-itms-backend"
-    pm2 save
-    pm2 startup
-    ```
-
-### Client Production Compilation
-Compile the React Vite frontend into static bundles:
-```bash
-cd client
-npm run build
-```
-This outputs the compiled files in `/client/dist`. The backend Express server will automatically serve these static files when `NODE_ENV=production` is set in the environment.
-
-### Nginx Reverse Proxy & SSL Configuration
-Configure Nginx as a reverse proxy to handle incoming requests on port 80/443, manage SSL certificates, and fallback to `/index.html` for single page application (SPA) routing.
-
-Add this server block configuration:
-```nginx
-server {
-    listen 80;
-    server_name itms.yourcompany.com;
-    
-    # Redirect HTTP to HTTPS (uncomment when SSL is ready)
-    # return 301 https://$host$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name itms.yourcompany.com;
-
-    ssl_certificate /etc/letsencrypt/live/itms.yourcompany.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/itms.yourcompany.com/privkey.pem;
-
-    # Static client files root
-    root /var/www/nkb-itms/client/dist;
-    index index.html;
-
-    # Frontend route fallback for React Router
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # API Proxy calls to Express server
-    location /api {
-        proxy_pass http://127.0.0.1:5000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-
-    # Socket.IO WebSocket Proxy Support
-    location /socket.io/ {
-        proxy_pass http://127.0.0.1:5000/socket.io/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "Upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-}
+npm run build --prefix client
 ```
 
 ---
 
-## 6. Seeded Default Accounts
-Use these accounts to sign in immediately after executing migrations:
+## 🧪 Testing Integration & Running Verification
 
-| Username | Password | Role | Access Level |
-| :--- | :--- | :--- | :--- |
-| **admin** | `AdminPassword123!` | Super Admin | Unrestricted root control & settings |
-| **itmanager** | `Employee123!` | IT Manager | Full IT operations access |
-| **itstaff** | `Employee123!` | IT Staff | Helpdesk, assets, and repairs operations |
-| **technician** | `Employee123!` | Technician | Diagnostics, checklists, and repair logging |
-| **depthead** | `Employee123!` | Department Head | Staff asset list views & filing tickets |
-| **employee** | `Employee123!` | Employee | Standard issue ticketing only |
-| **auditor** | `Employee123!` | Auditor | Read-only access to logs, reports, and assets |
+Run automated integration tests:
+```bash
+npm test -- --testPathPattern=apiPlatform.test.js
+```
+
+Run sample external client integration script:
+```bash
+node server/sample_api_client.js
+```
+
+---
+
+## 📖 API Documentation & Swagger UI
+
+Access the interactive OpenAPI 3.0 documentation page in your browser:
+```
+http://localhost:5000/docs
+```
+or in production:
+```
+https://api.nkbmanufacturing.com/docs
+```
+
+---
+
+## 🐳 Production Deployment (Docker & PM2)
+
+### Docker & Docker Compose
+```bash
+docker-compose up -d --build
+```
+
+### PM2 Process Manager
+```bash
+pm2 start ecosystem.config.js --env production
+```
+
+### Nginx Reverse Proxy
+Copy `nginx.conf` to `/etc/nginx/sites-available/api.nkbmanufacturing.com` and reload:
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```

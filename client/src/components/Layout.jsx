@@ -54,6 +54,7 @@ export default function Layout() {
       name: 'Administration',
       icon: Settings,
       items: [
+        { name: 'API Gateway Platform', path: '/api-platform', icon: Shield, perm: 'settings.manage' },
         { name: 'Employees', path: '/employees', icon: Users, perm: 'users.view' },
         { name: 'Reports', path: '/reports', icon: FileBarChart, perm: 'reports.view' },
         { name: 'Audit Logs', path: '/audit-logs', icon: History, perm: 'audit_logs.view' },

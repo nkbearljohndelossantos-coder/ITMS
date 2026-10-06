@@ -71,15 +71,15 @@ if (process.env.NODE_ENV === 'development') {
 // 5. Static folders serving
 // Handle favicon requests gracefully to serve favicon.ico file or 204
 app.get(['/favicon.ico', '/api/favicon.ico'], (req, res) => {
-  const icoPath = path.join(__dirname, '../../client/dist/favicon.ico');
+  const icoPath = path.resolve(__dirname, '../../client/dist/favicon.ico');
   if (fs.existsSync(icoPath)) {
     return res.sendFile(icoPath);
   }
-  const publicIcoPath = path.join(__dirname, '../../client/public/favicon.ico');
+  const publicIcoPath = path.resolve(__dirname, '../../client/public/favicon.ico');
   if (fs.existsSync(publicIcoPath)) {
     return res.sendFile(publicIcoPath);
   }
-  const logoPath = path.join(__dirname, '../../client/dist/nkb-logo.png');
+  const logoPath = path.resolve(__dirname, '../../client/dist/nkb-logo.png');
   if (fs.existsSync(logoPath)) {
     return res.sendFile(logoPath);
   }
@@ -88,14 +88,14 @@ app.get(['/favicon.ico', '/api/favicon.ico'], (req, res) => {
 
 // Dedicated Android DPC Agent APK download route
 app.get(['/uploads/NKB-ITMS-Agent.apk', '/api/uploads/NKB-ITMS-Agent.apk', '/api/mdm/download-apk'], (req, res) => {
-  const apkPath = path.join(__dirname, '../uploads/NKB-ITMS-Agent.apk');
+  const apkPath = path.resolve(__dirname, '../uploads/NKB-ITMS-Agent.apk');
   res.setHeader('Content-Type', 'application/vnd.android.package-archive');
   res.setHeader('Content-Disposition', 'attachment; filename="NKB-ITMS-Agent.apk"');
 
   if (fs.existsSync(apkPath)) {
     return res.sendFile(apkPath);
   }
-  const distApkPath = path.join(__dirname, '../../client/dist/uploads/NKB-ITMS-Agent.apk');
+  const distApkPath = path.resolve(__dirname, '../../client/dist/uploads/NKB-ITMS-Agent.apk');
   if (fs.existsSync(distApkPath)) {
     return res.sendFile(distApkPath);
   }
@@ -111,7 +111,23 @@ app.use(['/uploads/*', '/api/uploads/*'], (req, res) => {
   res.status(404).json({ success: false, message: 'Requested upload file not found' });
 });
 
+// Attach request correlation ID early
+const requestId = require('./middleware/requestId');
+app.use(requestId);
+
+// Interactive OpenAPI 3.0 Documentation
+const { openapiSpec, serveSwaggerUI } = require('./config/swagger');
+app.get('/docs/openapi.json', (req, res) => res.json(openapiSpec));
+app.get('/docs', serveSwaggerUI);
+
+// Health check probes
+app.use('/api/health', require('./routes/apiV1/health'));
+
 // 6. API Route Handlers
+app.use('/api/v1/documents', require('./routes/apiV1/documents'));
+app.use('/api/v1/platform-assets', require('./routes/apiV1/assets'));
+app.use('/api/admin/api-clients', require('./routes/apiClients'));
+
 app.use('/api/auth', authLimiter, require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/settings', require('./routes/settings'));
@@ -144,7 +160,7 @@ app.use('/api/v1/webfilter', require('./routes/webFiltering'));
 app.use('/api/mdm', require('./routes/mdm'));
 
 // 7. Serve Static Frontend files
-const distPath = path.join(__dirname, '../../client/dist');
+const distPath = path.resolve(__dirname, '../../client/dist');
 app.use(express.static(distPath));
 
 // Wildcard fallback for React Router SPA (Single Page Application)
@@ -152,7 +168,7 @@ app.get('*', (req, res, next) => {
   if (req.url.startsWith('/api') || req.url.startsWith('/uploads')) {
     return next();
   }
-  const indexPath = path.join(distPath, 'index.html');
+  const indexPath = path.resolve(distPath, 'index.html');
   if (fs.existsSync(indexPath)) {
     return res.sendFile(indexPath);
   }

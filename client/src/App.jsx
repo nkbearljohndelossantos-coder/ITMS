@@ -37,6 +37,7 @@ import Employees from './pages/Employees';
 import Reports from './pages/Reports';
 import AuditLogs from './pages/AuditLogs';
 import Settings from './pages/Settings';
+import ApiPlatform from './pages/ApiPlatform';
 
 // Route guards
 const PrivateRoute = ({ children }) => {
@@ -270,6 +271,9 @@ export default function App() {
                 <AuditLogs />
               </PermissionRoute>
             } />
+
+            {/* API Platform Gateway */}
+            <Route path="api-platform" element={<ApiPlatform />} />
 
             {/* Settings */}
             <Route path="settings" element={
