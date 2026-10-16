@@ -26,18 +26,19 @@ export default function Layout() {
     { name: 'Dashboard', path: '/', icon: LayoutDashboard, perm: 'dashboard.view' },
     { name: 'IT Assets', path: '/assets', icon: Laptop, perm: 'assets.view' },
     { name: 'Two-Way Radios', path: '/two-way-radios', icon: Radio, perm: 'assets.view' },
+    { name: 'Equipment Calculator', path: '/calculator', icon: Calculator },
     { name: 'Help Desk', path: '/tickets', icon: Ticket, perm: 'tickets.create' }, // available to employees and staff
     { name: 'Repair Records', path: '/repairs', icon: Wrench, perm: 'repairs.view' },
     { name: 'Preventive Maint.', path: '/maintenance', icon: Calendar, perm: 'maintenance.view' },
     { name: 'Spare Parts', path: '/inventory', icon: Package, perm: 'inventory.view' },
     { name: 'Software Licenses', path: '/licenses', icon: Key, perm: 'licenses.view' },
-    { name: 'Equipment Calculator', path: '/calculator', icon: Calculator, perm: 'assets.view' },
     
     { 
       isDropdown: true, 
       name: 'IT Operations Hub',
       icon: Server,
       items: [
+        { name: 'Equipment Calculator', path: '/calculator', icon: Calculator },
         { name: 'Remote Management', path: '/remote-management', icon: Radio, perm: 'remote_device.view' },
         { name: 'Web & App Filtering MDM', path: '/web-filtering', icon: Shield, perm: 'assets.view' },
         { name: 'Backups', path: '/backups', icon: Database, perm: 'backups.view' },
@@ -66,14 +67,14 @@ export default function Layout() {
 
   const filteredMenu = menuItems.map(item => {
     if (item.isDropdown) {
-      const filteredItems = item.items.filter(subItem => hasPermission(subItem.perm));
+      const filteredItems = item.items.filter(subItem => !subItem.perm || hasPermission(subItem.perm));
       return { ...item, items: filteredItems };
     }
     if (item.name === 'Help Desk') {
       if (hasPermission('tickets.view_all') || hasPermission('tickets.view_own')) return item;
       return null;
     }
-    if (hasPermission(item.perm)) return item;
+    if (!item.perm || hasPermission(item.perm)) return item;
     return null;
   }).filter(item => item !== null && (!item.isDropdown || item.items.length > 0));
 

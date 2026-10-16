@@ -277,11 +277,7 @@ export default function App() {
             <Route path="api-platform" element={<ApiPlatform />} />
 
             {/* IT Equipment Static Calculator */}
-            <Route path="calculator" element={
-              <PermissionRoute permission="assets.view">
-                <Calculator />
-              </PermissionRoute>
-            } />
+            <Route path="calculator" element={<Calculator />} />
 
             {/* Settings */}
             <Route path="settings" element={

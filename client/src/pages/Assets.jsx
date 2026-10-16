@@ -4,7 +4,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { 
   Plus, Search, Filter, Laptop, Smartphone, Radio, Mouse, AlertCircle, Eye, Edit,
-  Wrench, CheckCircle, HelpCircle, ShieldAlert, X, ZoomIn, Camera, Upload, ShieldCheck, Zap, Printer
+  Wrench, CheckCircle, HelpCircle, ShieldAlert, X, ZoomIn, Camera, Upload, ShieldCheck, Zap, Printer, Calculator
 } from 'lucide-react';
 import ImageZoomModal from '../components/ImageZoomModal';
 import { optimizeImageQuality } from '../utils/imageOptimizer';
@@ -360,21 +360,31 @@ export default function Assets() {
     <div className="space-y-6">
       
       {/* Title */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">IT Assets Register</h1>
           <p className="text-xs text-slate-500 mt-1">Manage company workstations, servers, network hardware, and peripherals.</p>
         </div>
         
-        {hasPermission('assets.create') && (
+        <div className="flex items-center gap-2">
           <button 
-            onClick={openAddModal}
-            className="px-4 py-2 bg-slate-950 text-white rounded-lg text-xs font-semibold hover:bg-gold-650 transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+            onClick={() => navigate('/calculator')}
+            className="px-3.5 py-2 bg-white text-slate-800 border border-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50 transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
           >
-            <Plus className="h-4 w-4" />
-            <span>Add Asset</span>
+            <Calculator className="h-4 w-4 text-gold-600" />
+            <span>Equipment Calculator</span>
           </button>
-        )}
+          
+          {hasPermission('assets.create') && (
+            <button 
+              onClick={openAddModal}
+              className="px-4 py-2 bg-slate-950 text-white rounded-lg text-xs font-semibold hover:bg-gold-650 transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add Asset</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ==========================================

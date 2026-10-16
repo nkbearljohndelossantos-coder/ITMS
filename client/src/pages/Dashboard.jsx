@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { 
   Laptop, Ticket, Wrench, AlertTriangle, Key, 
-  Calendar, ArrowRight, UserPlus, Info, CheckCircle2, ShieldAlert
+  Calendar, ArrowRight, UserPlus, Info, CheckCircle2, ShieldAlert, Calculator
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -64,9 +64,18 @@ export default function Dashboard() {
     <div className="space-y-6">
       
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">System Dashboard</h1>
-        <p className="text-xs text-slate-500 mt-1">Real-time IT infrastructure and service metrics.</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">System Dashboard</h1>
+          <p className="text-xs text-slate-500 mt-1">Real-time IT infrastructure and service metrics.</p>
+        </div>
+        <button
+          onClick={() => navigate('/calculator')}
+          className="flex items-center gap-2 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-gold-400 border border-gold-500/30 rounded-xl text-xs font-bold shadow-sm transition"
+        >
+          <Calculator className="h-4 w-4 text-gold-400" />
+          <span>Hardware Calculator (CCTV, PC, Laptop, Printer)</span>
+        </button>
       </div>
 
       {/* ==========================================
