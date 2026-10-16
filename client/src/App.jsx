@@ -38,6 +38,7 @@ import Reports from './pages/Reports';
 import AuditLogs from './pages/AuditLogs';
 import Settings from './pages/Settings';
 import ApiPlatform from './pages/ApiPlatform';
+import Calculator from './pages/Calculator';
 
 // Route guards
 const PrivateRoute = ({ children }) => {
@@ -274,6 +275,13 @@ export default function App() {
 
             {/* API Platform Gateway */}
             <Route path="api-platform" element={<ApiPlatform />} />
+
+            {/* IT Equipment Static Calculator */}
+            <Route path="calculator" element={
+              <PermissionRoute permission="assets.view">
+                <Calculator />
+              </PermissionRoute>
+            } />
 
             {/* Settings */}
             <Route path="settings" element={

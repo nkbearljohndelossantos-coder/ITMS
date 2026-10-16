@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Laptop, Ticket, Wrench, Calendar, 
   Package, Key, Users, FileBarChart, History, Settings, 
   Menu, X, Bell, LogOut, User, Lock, ChevronRight, ChevronDown,
-  Database, Shield, Network, Printer, Folder, Wifi, Globe, Server, Radio
+  Database, Shield, Network, Printer, Folder, Wifi, Globe, Server, Radio, Calculator
 } from 'lucide-react';
 
 export default function Layout() {
@@ -31,6 +31,7 @@ export default function Layout() {
     { name: 'Preventive Maint.', path: '/maintenance', icon: Calendar, perm: 'maintenance.view' },
     { name: 'Spare Parts', path: '/inventory', icon: Package, perm: 'inventory.view' },
     { name: 'Software Licenses', path: '/licenses', icon: Key, perm: 'licenses.view' },
+    { name: 'Equipment Calculator', path: '/calculator', icon: Calculator, perm: 'assets.view' },
     
     { 
       isDropdown: true, 
